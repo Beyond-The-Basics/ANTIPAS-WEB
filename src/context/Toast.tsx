@@ -59,9 +59,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ notify, run }}>
       {children}
-      <div className="toast-stack">
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast toast-${t.kind}`}>
+          <div
+            key={t.id}
+            className={`max-w-[380px] rounded-field border bg-white px-3.5 py-2.5 text-[13px] shadow-float ${
+              t.kind === "error"
+                ? "border-[#d97066] text-[#9b3229]"
+                : "border-brand-tint text-brand-deep"
+            }`}
+          >
             {t.message}
           </div>
         ))}

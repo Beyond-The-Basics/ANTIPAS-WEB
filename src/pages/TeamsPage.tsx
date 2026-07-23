@@ -1,116 +1,194 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
-import { SPORTS, type Sport, type Team } from "../api/types";
-import { Badge, Empty, ShortId } from "../components/ui";
+import { SPORTS, type Match, type Sport } from "../api/types";
+import {
+  AvatarStack,
+  Button,
+  Card,
+  Empty,
+  Pill,
+  RolePill,
+  SPORT_LABEL,
+  SectionLabel,
+  SportDot,
+} from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
+import { useMyTeams, useUsers } from "../lib/useMyTeams";
 
-export function TeamsPage() {
+function CreateTeam({ onCreated }: { onCreated: () => void }) {
   const { user: acting } = useActingUser();
   const { run, notify } = useToast();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [filter, setFilter] = useState<Sport | "">("");
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [sport, setSport] = useState<Sport>("soccer");
 
-  const load = () => {
-    const q = filter ? `?sport=${filter}` : "";
-    void run(async () => setTeams(await api.get<Team[]>(`/teams${q}`)));
-  };
-  useEffect(load, [filter]);
-
   const create = async () => {
-    if (!acting) return notify("Pick an acting user first (top-right)", "error");
+    if (!acting) return notify("Pick who you're acting as first", "error");
     await run(async () => {
-      await api.post<Team>("/teams", { name, sport });
+      await api.post("/teams", { name, sport });
       setName("");
-      load();
+      setOpen(false);
+      onCreated();
     }, "Team created — you are its captain");
   };
 
+  if (!open) return <Button onClick={() => setOpen(true)}>+ Create team</Button>;
+
+  return (
+    <Card className="flex items-end gap-2.5 p-3.5">
+      <input
+        className="field w-[200px]"
+        autoFocus
+        placeholder="Team name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <select
+        className="field font-semibold"
+        value={sport}
+        onChange={(e) => setSport(e.target.value as Sport)}
+      >
+        {SPORTS.map((s) => (
+          <option key={s} value={s}>
+            {SPORT_LABEL[s]}
+          </option>
+        ))}
+      </select>
+      <Button onClick={create} disabled={!name || !acting}>
+        Create
+      </Button>
+      <Button variant="ghost" onClick={() => setOpen(false)}>
+        Cancel
+      </Button>
+    </Card>
+  );
+}
+
+export function TeamsPage() {
+  const { user: acting } = useActingUser();
+  const navigate = useNavigate();
+  const { teams, allTeams, reload } = useMyTeams(acting);
+  const { userName } = useUsers();
+  const [matchesByTeam, setMatchesByTeam] = useState<Record<string, Match[]>>({});
+
+  const loadMatches = useCallback(async () => {
+    const entries = await Promise.all(
+      teams.map(({ team }) =>
+        api
+          .get<Match[]>(`/teams/${team.id}/matches`)
+          .catch(() => [] as Match[])
+          .then((m) => [team.id, m] as const),
+      ),
+    );
+    setMatchesByTeam(Object.fromEntries(entries));
+  }, [teams]);
+
+  useEffect(() => {
+    void loadMatches();
+  }, [loadMatches]);
+
+  const myTeamIds = new Set(teams.map((t) => t.team.id));
+
   return (
     <>
-      <h1>Teams</h1>
-
-      <div className="card">
-        <h2>Create team</h2>
-        <p className="hint">The acting user becomes the team captain.</p>
-        <div className="row">
-          <div>
-            <label>Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Falcons" />
-          </div>
-          <div style={{ flex: "0 0 160px" }}>
-            <label>Sport</label>
-            <select value={sport} onChange={(e) => setSport(e.target.value as Sport)}>
-              {SPORTS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ flex: "0 0 auto" }}>
-            <button onClick={create} disabled={!name || !acting}>
-              Create
-            </button>
-          </div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="mb-1 text-[26px] font-bold">Teams</h1>
+          <p className="text-sm text-muted">Teams you belong to</p>
         </div>
+        <CreateTeam onCreated={reload} />
       </div>
 
-      <div className="card">
-        <div className="row" style={{ marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>All teams ({teams.length})</h2>
-          <div style={{ flex: "0 0 180px" }}>
-            <label>Filter by sport</label>
-            <select value={filter} onChange={(e) => setFilter(e.target.value as Sport | "")}>
-              <option value="">all sports</option>
-              {SPORTS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
+      {!acting ? (
+        <Empty>Pick who you're acting as to see your teams.</Empty>
+      ) : teams.length === 0 ? (
+        <Empty>You're not on any team yet — create one, or apply from Discover.</Empty>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {teams.map(({ team, role, members }) => {
+            const confirmed = (matchesByTeam[team.id] ?? []).find((m) => m.status === "confirmed");
+            let ctaLabel: string;
+            let ctaPrimary = true;
+            let onCta: () => void;
+            let subtitle: string;
+            if (confirmed && team.completed) {
+              ctaLabel = "View match";
+              ctaPrimary = false;
+              onCta = () => navigate(`/matches/${confirmed.id}`);
+              subtitle = `${SPORT_LABEL[team.sport]} · match confirmed`;
+            } else if (team.completed) {
+              ctaLabel = "Find opponent";
+              onCta = () => navigate(`/teams/${team.id}?tab=opponent`);
+              subtitle = `${SPORT_LABEL[team.sport]} · ready for an opponent`;
+            } else {
+              ctaLabel = "Add players";
+              onCta = () => navigate(`/teams/${team.id}?tab=recruiting`);
+              subtitle = `${SPORT_LABEL[team.sport]} · recruiting players`;
+            }
+
+            return (
+              <Card
+                key={team.id}
+                className="flex items-center gap-3.5 rounded-card px-4 py-4"
+                onClick={() => navigate(`/teams/${team.id}`)}
+              >
+                <SportDot sport={team.sport} size={42} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-bold">{team.name}</span>
+                    <RolePill role={role} />
+                    {team.is_adhoc && <Pill value="closed" label="ad hoc" />}
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted">{subtitle}</div>
+                </div>
+                <AvatarStack
+                  names={members.map((m) => userName(m.user_id))}
+                  total={members.length}
+                />
+                <Button
+                  size="sm"
+                  variant={ctaPrimary ? "primary" : "ghost"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCta();
+                  }}
+                >
+                  {ctaLabel}
+                </Button>
+              </Card>
+            );
+          })}
         </div>
-        {teams.length === 0 ? (
-          <Empty>No teams.</Empty>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Sport</th>
-                <th>Completed</th>
-                <th>Id</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map((t) => (
-                <tr key={t.id}>
-                  <td>
+      )}
+
+      {allTeams.some((t) => !myTeamIds.has(t.id)) && (
+        <div className="mt-10">
+          <SectionLabel>Other teams</SectionLabel>
+          <div className="flex flex-col gap-2">
+            {allTeams
+              .filter((t) => !myTeamIds.has(t.id))
+              .map((t) => (
+                <Card key={t.id} className="flex items-center gap-3 rounded-[10px] px-4 py-3">
+                  <SportDot sport={t.sport} size={26} />
+                  <Link
+                    to={`/teams/${t.id}`}
+                    className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink hover:text-brand"
+                  >
                     {t.name}
-                    {t.is_adhoc && <span className="badge" style={{ marginLeft: 6 }}>adhoc</span>}
-                  </td>
-                  <td>{t.sport}</td>
-                  <td>{t.completed ? <Badge value="confirmed" /> : <span className="muted">no</span>}</td>
-                  <td>
-                    <ShortId id={t.id} />
-                  </td>
-                  <td>
-                    <Link to={`/teams/${t.id}`}>
-                      <button className="small secondary">Open</button>
-                    </Link>
-                  </td>
-                </tr>
+                  </Link>
+                  <span className="text-xs text-muted">{SPORT_LABEL[t.sport]}</span>
+                  <Pill
+                    value={t.completed ? "confirmed" : "open"}
+                    label={t.completed ? "Completed roster" : "Recruiting"}
+                  />
+                </Card>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

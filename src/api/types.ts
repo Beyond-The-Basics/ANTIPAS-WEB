@@ -88,3 +88,46 @@ export interface Match {
   status: MatchStatus;
   created_at: string;
 }
+
+/** Free individual broadcast: "I'm available for <sport> in <city>". */
+export interface PlayerAvailability {
+  id: string;
+  user_id: string;
+  sport: Sport;
+  city: string;
+  status: ListingStatus;
+  expires_at: string;
+  created_at: string;
+}
+
+/** Free one-off substitute search, always attached to an already-confirmed match. */
+export interface GuestSearch {
+  id: string;
+  match_id: string;
+  team_id: string;
+  city: string;
+  status: ListingStatus;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface GuestApplication {
+  id: string;
+  guest_search_id: string | null;
+  match_id: string;
+  team_id: string;
+  user_id: string;
+  direction: ApplicationDirection;
+  status: ApplicationStatus;
+  created_at: string;
+}
+
+/** Result of accepting a guest application — participation in one match, not a membership. */
+export interface MatchGuestParticipant {
+  id: string;
+  match_id: string;
+  team_id: string;
+  user_id: string;
+  guest_application_id: string;
+  created_at: string;
+}

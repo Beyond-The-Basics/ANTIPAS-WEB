@@ -33,7 +33,9 @@ export function ActingUserProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      setUserState(await api.get<User>(`/users/${id}`));
+      // `/users/me` resolves through the auth header the client already sends, so this is the same
+      // call the app will make once Firebase replaces the X-User-Id stub.
+      setUserState(await api.get<User>(`/users/me`));
     } catch {
       setActingUserId(null);
       setUserState(null);
