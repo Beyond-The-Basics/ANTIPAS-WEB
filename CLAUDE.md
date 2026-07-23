@@ -41,6 +41,12 @@ Needs the **backend running** on `http://localhost:8000` (`make test-instance` i
 Point elsewhere with `VITE_API_TARGET=http://host:port npm run dev`. The Vite proxy means no CORS
 changes are needed on the API.
 
+**WSL2 + `/mnt/c` needs a polling watcher.** This repo lives on a Windows drive; inotify events
+don't cross the 9p mount, so without `server.watch.usePolling` (set in `vite.config.ts`) the
+watcher never fires. Vite keeps serving the module it transformed at startup and edits appear to do
+nothing — including edits you make to fix a bug you're staring at. If HMR ever looks dead, check
+that setting before doubting the code.
+
 ## Architecture
 
 Vite + React 18 + TypeScript + Tailwind v3 + react-router v6.

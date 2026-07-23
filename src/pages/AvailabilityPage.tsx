@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, ZoomControl } from "react-leaflet";
 
 import { api } from "../api/client";
 import { SPORTS, type PlayerAvailability, type Sport } from "../api/types";
@@ -94,12 +94,16 @@ export function AvailabilityPage() {
           center={DEFAULT_CENTER}
           zoom={12}
           scrollWheelZoom={false}
+          // The filter bar sits over the top-left corner, which is Leaflet's default spot for the
+          // zoom buttons; move them out from under it.
+          zoomControl={false}
           style={{ height: 380, width: "100%" }}
         >
           <TileLayer
             attribution="&copy; OpenStreetMap &copy; CARTO"
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
+          <ZoomControl position="bottomleft" />
           <Marker position={DEFAULT_CENTER} icon={PIN} draggable ref={pinRef} />
         </MapContainer>
 

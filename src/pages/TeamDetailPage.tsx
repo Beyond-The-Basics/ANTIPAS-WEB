@@ -77,9 +77,16 @@ export function TeamDetailPage() {
         api.get<Membership[]>(`/teams/${teamId}/members`),
         api.get<Match[]>(`/teams/${teamId}/matches`),
         api.get<RosterSearch[]>(`/roster-searches`),
-        api.get<RosterApplication[]>(`/teams/${teamId}/roster-applications`),
+        // These two are captain/admin-only and 403 for everyone else. They have to fail soft:
+        // rejecting here would take down the whole batch and leave the page on "Loading team…"
+        // for plain members and for anyone opening a team they're not on.
+        api
+          .get<RosterApplication[]>(`/teams/${teamId}/roster-applications`)
+          .catch(() => [] as RosterApplication[]),
         api.get<OpponentSearch[]>(`/opponent-searches`),
-        api.get<OpponentApplication[]>(`/teams/${teamId}/opponent-applications`),
+        api
+          .get<OpponentApplication[]>(`/teams/${teamId}/opponent-applications`)
+          .catch(() => [] as OpponentApplication[]),
         api.get<User[]>(`/users`),
         api.get<Team[]>(`/teams`),
       ]);
