@@ -6,6 +6,7 @@
   "description": "Web console for exercising the Kickoff (ANTIPAS) API during development.",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc -b",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
