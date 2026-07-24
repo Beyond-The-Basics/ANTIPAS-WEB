@@ -1,4 +1,5 @@
-// Shared reference data for the onboarding wizard and the profile edit screen.
+// Shared reference data — used by the user onboarding wizard, the profile edit screen, and team
+// creation/edit (country/city apply to both users and teams).
 
 /** Morocco first and pre-selected, per the product's initial market; the rest cover where the
  * design's testimonials (Austin, Dallas, Miami) and common opponents come from. Free text would

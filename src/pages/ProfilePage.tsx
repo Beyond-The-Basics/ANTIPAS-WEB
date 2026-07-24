@@ -15,7 +15,7 @@ import {
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
-import { ATHLETIC_TRAITS, COUNTRIES, type AthleticTraitKey } from "../lib/profile";
+import { ATHLETIC_TRAITS, COUNTRIES, type AthleticTraitKey } from "../lib/reference";
 import { useMyTeams } from "../lib/useMyTeams";
 
 const ALL_SPORTS: Sport[] = ["soccer", "tennis", "paddle"];

@@ -40,7 +40,10 @@ export interface AuthTokens {
 export interface Team {
   id: string;
   name: string;
+  description: string | null;
   logo_url: string | null;
+  country: string;
+  city: string | null;
   sport: Sport;
   completed: boolean;
   is_adhoc: boolean;

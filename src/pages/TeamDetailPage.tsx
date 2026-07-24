@@ -13,6 +13,7 @@ import type {
   TeamRole,
   User,
 } from "../api/types";
+import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
 import {
   Avatar,
   Button,
@@ -29,6 +30,7 @@ import {
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
 import { dateLabel, expiresLabel } from "../lib/format";
+import { COUNTRIES } from "../lib/reference";
 
 type Tab = "members" | "recruiting" | "opponent" | "matches";
 
@@ -203,6 +205,8 @@ export function TeamDetailPage() {
         </div>
       </div>
 
+      <AboutTeam team={team} manages={manages} act={act} />
+
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === "members" && (
@@ -218,10 +222,10 @@ export function TeamDetailPage() {
 
       {tab === "recruiting" && (
         <RecruitingTab
-          teamId={teamId}
+          team={team}
+          members={members}
           searches={rosterSearches}
           apps={rosterApps}
-          users={users}
           userName={userName}
           manages={manages}
           act={act}
@@ -244,6 +248,104 @@ export function TeamDetailPage() {
         <MatchesTab teamId={teamId} matches={matches} teamName={teamName} />
       )}
     </>
+  );
+}
+
+// --- about ----------------------------------------------------------------------
+
+function AboutTeam({
+  team,
+  manages,
+  act,
+}: {
+  team: Team;
+  manages: boolean;
+  act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [description, setDescription] = useState(team.description ?? "");
+  const [country, setCountry] = useState(team.country);
+  const [city, setCity] = useState(team.city ?? "");
+
+  if (editing) {
+    return (
+      <Card className="mb-5 flex flex-col gap-3 p-4">
+        <div>
+          <Label>Description</Label>
+          <textarea
+            className="field w-full"
+            rows={2}
+            maxLength={500}
+            placeholder="What's this team about — level, vibe, how often you play…"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Label>Country</Label>
+            <select
+              className="field w-full"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <Label>City</Label>
+            <input
+              className="field w-full"
+              placeholder="(none)"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() =>
+              act(
+                () =>
+                  api.patch(`/teams/${team.id}`, {
+                    description: description.trim() || null,
+                    country,
+                    city: city.trim() || null,
+                  }),
+                "Team info updated",
+              ).then(() => setEditing(false))
+            }
+          >
+            Save
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const location = [team.city, team.country].filter(Boolean).join(", ");
+  return (
+    <Card className="mb-5 flex items-start justify-between gap-3 p-4">
+      <div className="min-w-0">
+        <p className="text-[13px] text-ink-2">
+          {team.description || <span className="text-faint">No description yet.</span>}
+        </p>
+        <p className="mt-1 text-[12px] text-muted">{location}</p>
+      </div>
+      {manages && (
+        <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+          Edit
+        </Button>
+      )}
+    </Card>
   );
 }
 
@@ -330,29 +432,27 @@ function MembersTab({
 // --- recruiting ---------------------------------------------------------------
 
 function RecruitingTab({
-  teamId,
+  team,
+  members,
   searches,
   apps,
-  users,
   userName,
   manages,
   act,
   reload,
 }: {
-  teamId: string;
+  team: Team;
+  members: Membership[];
   searches: RosterSearch[];
   apps: RosterApplication[];
-  users: User[];
   userName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   reload: () => Promise<void>;
 }) {
-  const { run } = useToast();
   const [city, setCity] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [inviting, setInviting] = useState(false);
-  const [inviteUser, setInviteUser] = useState("");
 
   return (
     <div>
@@ -379,7 +479,7 @@ function RecruitingTab({
                   disabled={!city}
                   onClick={() =>
                     act(
-                      () => api.post(`/teams/${teamId}/roster-searches`, { city }),
+                      () => api.post(`/teams/${team.id}/roster-searches`, { city }),
                       "Roster search published",
                     ).then(() => {
                       setCity("");
@@ -482,37 +582,15 @@ function RecruitingTab({
 
       {manages &&
         (inviting ? (
-          <div className="flex items-center gap-2">
-            <select
-              className="field w-[220px]"
-              autoFocus
-              value={inviteUser}
-              onChange={(e) => setInviteUser(e.target.value)}
-            >
-              <option value="">— pick a player —</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              disabled={!inviteUser}
-              onClick={() =>
-                run(
-                  () => api.post(`/teams/${teamId}/roster-invitations`, { user_id: inviteUser }),
-                  "Invite sent",
-                ).then(() => {
-                  setInviteUser("");
-                  setInviting(false);
-                  return reload();
-                })
-              }
-            >
-              Invite
-            </Button>
-            <Button variant="ghost" onClick={() => setInviting(false)}>
-              Cancel
+          <div>
+            <PlayerSearchInvite
+              teamId={team.id}
+              sport={team.sport}
+              excludeUserIds={new Set(members.map((m) => m.user_id))}
+              onInvited={() => reload()}
+            />
+            <Button variant="ghost" className="mt-2.5" onClick={() => setInviting(false)}>
+              Done
             </Button>
           </div>
         ) : (

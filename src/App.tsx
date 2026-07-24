@@ -4,6 +4,7 @@ import { Layout } from "./components/Layout";
 import { useActingUser } from "./context/ActingUser";
 import { LoginPage, SignupPage } from "./pages/AuthPages";
 import { AvailabilityPage } from "./pages/AvailabilityPage";
+import { CreateTeamPage } from "./pages/CreateTeamPage";
 import { DiscoverPage } from "./pages/DiscoverPage";
 import { HomePage } from "./pages/HomePage";
 import { LandingPage } from "./pages/LandingPage";
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/teams" element={<TeamsPage />} />
+        <Route path="/teams/new" element={<CreateTeamPage />} />
         <Route path="/teams/:teamId" element={<TeamDetailPage />} />
         <Route path="/matches/:matchId" element={<MatchDetailPage />} />
         <Route path="/availability" element={<AvailabilityPage />} />
