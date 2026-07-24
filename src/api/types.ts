@@ -45,9 +45,20 @@ export interface Team {
   country: string;
   city: string | null;
   sport: Sport;
+  // The lineup format (e.g. 7v7) — null until a captain sets one at the roster-building stage.
+  // Required before `completed` can be set; any OpponentSearch this team publishes inherits it.
+  game_type_id: string | null;
   completed: boolean;
   is_adhoc: boolean;
   created_at: string;
+}
+
+/** The lineup catalog (e.g. soccer 5v5/6v6/7v7/11v11) a captain picks from for their team. */
+export interface GameType {
+  id: string;
+  sport: Sport;
+  label: string;
+  players_per_side: number;
 }
 
 export interface Membership {
@@ -56,6 +67,7 @@ export interface Membership {
   user_id: string;
   role: TeamRole;
   status: string;
+  jersey_number: number | null;
   joined_at: string;
 }
 
