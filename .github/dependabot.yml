@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      # One PR per week instead of one per outdated package.
+      npm-dependencies:
+        patterns:
+          - "*"
+
+  # The Actions used by .github/workflows/*.yml themselves.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
