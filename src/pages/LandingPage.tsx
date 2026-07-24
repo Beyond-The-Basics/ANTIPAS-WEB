@@ -7,16 +7,12 @@
 // call:
 //   1. The prototype is desktop-only (`min-width:1080px`). A public marketing page can't be, so
 //      every section stacks down to mobile. Desktop renders exactly as designed.
-//   2. The CTAs route into the app rather than to auth routes, which don't exist yet — see
-//      SIGN_UP_TO / SIGN_IN_TO below.
+//   2. The CTAs all route to the real auth pages — see SIGN_UP_TO / SIGN_IN_TO below.
 
 import { Link } from "react-router-dom";
 
-// There is no auth. Signup is the "Create a user" form on the profile page; "signing in" is the
-// act-as switcher in the app header. When Firebase lands (see `api/client.ts`), these become
-// /signup and /login and nothing else on this page changes.
-const SIGN_UP_TO = "/profile";
-const SIGN_IN_TO = "/home";
+const SIGN_UP_TO = "/signup";
+const SIGN_IN_TO = "/login";
 
 // Creative Commons photography hot-linked from Wikimedia Commons, carried over from the
 // prototype. Replace with licensed photography before this page goes public.

@@ -7,13 +7,18 @@ import {
   Card,
   Empty,
   Label,
+  RatingDots,
   SPORT_LABEL,
   SectionLabel,
+  SportDot,
   initials,
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
+import { ATHLETIC_TRAITS, COUNTRIES, type AthleticTraitKey } from "../lib/profile";
 import { useMyTeams } from "../lib/useMyTeams";
+
+const ALL_SPORTS: Sport[] = ["soccer", "tennis", "paddle"];
 
 function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
@@ -31,12 +36,37 @@ export function ProfilePage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [age, setAge] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [favoriteSports, setFavoriteSports] = useState<Sport[]>([]);
+  const [ratings, setRatings] = useState<Record<AthleticTraitKey, number | null>>({
+    speed_rating: null,
+    strength_rating: null,
+    stamina_rating: null,
+    agility_rating: null,
+  });
   const [matchCount, setMatchCount] = useState<number | null>(null);
 
   useEffect(() => {
     setName(acting?.name ?? "");
     setEmail(acting?.email ?? "");
-  }, [acting?.id, acting?.name, acting?.email]);
+    setNickname(acting?.nickname ?? "");
+    setAge(acting?.age?.toString() ?? "");
+    setCountry(acting?.country ?? "");
+    setCity(acting?.city ?? "");
+    setFavoriteSports(acting?.favorite_sports ?? []);
+    setRatings({
+      speed_rating: acting?.speed_rating ?? null,
+      strength_rating: acting?.strength_rating ?? null,
+      stamina_rating: acting?.stamina_rating ?? null,
+      agility_rating: acting?.agility_rating ?? null,
+    });
+  }, [acting]);
+
+  const toggleFavoriteSport = (s: Sport) =>
+    setFavoriteSports((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const loadMatches = useCallback(async () => {
     if (!acting || teams.length === 0) return setMatchCount(teams.length === 0 ? 0 : null);
@@ -54,13 +84,16 @@ export function ProfilePage() {
   }, [loadMatches]);
 
   if (!acting) {
+    // Unreachable via normal navigation — AppShell only renders this page once a user is
+    // resolved — but kept as a defensive fallback for the dev "act as" switcher's edge cases.
     return (
       <>
         <h1 className="mb-1 text-[26px] font-bold">Profile</h1>
         <p className="mb-7 text-sm text-muted">
-          Nobody selected — pick a user from the chip in the top right, or create one below.
+          Nobody selected — pick a user from the chip in the top right
+          {import.meta.env.DEV && ", or create one below"}.
         </p>
-        <CreateUser />
+        {import.meta.env.DEV && <CreateUser />}
       </>
     );
   }
@@ -136,16 +169,109 @@ export function ProfilePage() {
               </div>
               <Label>Email</Label>
               <input
-                className="field mb-4 w-full"
+                className="field mb-6 w-full"
                 placeholder="(none)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+
+              <SectionLabel>Profile</SectionLabel>
+              <div className="mb-4 grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Nickname</Label>
+                  <input
+                    className="field w-full"
+                    placeholder="(none)"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Age</Label>
+                  <input
+                    className="field w-full"
+                    type="number"
+                    min={13}
+                    max={100}
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Country</Label>
+                  <select
+                    className="field w-full"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <input
+                    className="field w-full"
+                    placeholder="(none)"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Label>Favorite sports</Label>
+              <div className="mb-5 mt-1.5 flex flex-wrap gap-2">
+                {ALL_SPORTS.map((s) => {
+                  const selected = favoriteSports.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleFavoriteSport(s)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold ${
+                        selected
+                          ? "border-brand bg-brand-tint text-brand-deep"
+                          : "border-line bg-white text-muted hover:bg-canvas"
+                      }`}
+                    >
+                      <SportDot sport={s} size={16} />
+                      {SPORT_LABEL[s]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Label>Athletic profile</Label>
+              <div className="mb-6 mt-2 flex flex-col gap-2.5">
+                {ATHLETIC_TRAITS.map((t) => (
+                  <div key={t.key} className="flex items-center justify-between gap-3">
+                    <span className="text-[12.5px] text-ink-2">{t.label}</span>
+                    <RatingDots
+                      value={ratings[t.key]}
+                      onChange={(n) => setRatings((prev) => ({ ...prev, [t.key]: n }))}
+                    />
+                  </div>
+                ))}
+              </div>
+
               <Button
                 disabled={!name}
                 onClick={() =>
                   run(
-                    () => api.patch(`/users/me`, { name, email: email || null }),
+                    () =>
+                      api.patch(`/users/me`, {
+                        name,
+                        email: email || null,
+                        nickname: nickname || null,
+                        age: age ? Number(age) : null,
+                        country,
+                        city: city || null,
+                        favorite_sports: favoriteSports,
+                        ...ratings,
+                      }),
                     "Profile updated",
                   ).then(refresh)
                 }
@@ -187,9 +313,11 @@ export function ProfilePage() {
         </div>
       </Card>
 
-      <div className="mt-10">
-        <CreateUser />
-      </div>
+      {import.meta.env.DEV && (
+        <div className="mt-10">
+          <CreateUser />
+        </div>
+      )}
     </>
   );
 }
@@ -199,7 +327,7 @@ export function ProfilePage() {
  * directly. Kept on this page so the console can still bootstrap users to act as.
  */
 function CreateUser() {
-  const { setUser } = useActingUser();
+  const { actAs } = useActingUser();
   const { run } = useToast();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -213,7 +341,7 @@ function CreateUser() {
       setPhone("");
       setEmail("");
       setOpen(false);
-      setUser(created); // start acting as the new user
+      actAs(created); // start impersonating the new (credential-less) user
     }, "User created");
 
   return (

@@ -29,18 +29,21 @@ function Nav({ to, label }: { to: string; label: string }) {
 }
 
 /**
- * The design's profile chip assumes a signed-in user. There is no auth yet — `api/client.ts` sends
- * an `X-User-Id` stub — so the chip doubles as the "act as" switcher: it shows who you are, and
- * opens a picker to become someone else.
+ * Shows who you're signed in as and opens the account menu.
+ *
+ * In dev it also carries the "act as" switcher, which impersonates any user through the backend's
+ * non-production `X-User-Id` fallback. That list is gated on `import.meta.env.DEV` so a production
+ * build never ships a one-click impersonate-anyone control.
  */
 function ProfileChip() {
-  const { user, setUser } = useActingUser();
+  const { user, isAuthenticated, actAs, logout } = useActingUser();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const loadUsers = () => {
+    if (!import.meta.env.DEV) return;
     api
       .get<User[]>("/users")
       .then(setUsers)
@@ -50,6 +53,12 @@ function ProfileChip() {
   useEffect(loadUsers, []);
   // Re-read the roster whenever the acting user changes (a new user may have just been created).
   useEffect(loadUsers, [user?.id]);
+
+  const signOut = () => {
+    setOpen(false);
+    logout();
+    navigate("/");
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -91,41 +100,42 @@ function ProfileChip() {
               View profile
             </button>
           )}
-          <div className="my-1.5 border-t border-line-2" />
-          <div className="px-4 pb-1 text-[11px] font-bold uppercase tracking-[.05em] text-faint">
-            Act as
-          </div>
-          <div className="max-h-64 overflow-y-auto">
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => {
-                  setUser(u);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] hover:bg-canvas ${
-                  u.id === user?.id ? "font-bold text-brand-deep" : ""
-                }`}
-              >
-                <Avatar name={u.name} size={24} />
-                <span className="min-w-0 flex-1 truncate">{u.name}</span>
-              </button>
-            ))}
-            {users.length === 0 && (
-              <div className="px-4 py-2 text-[12.5px] text-faint">No users yet.</div>
-            )}
-          </div>
+          {import.meta.env.DEV && (
+            <>
+              <div className="my-1.5 border-t border-line-2" />
+              <div className="px-4 pb-1 text-[11px] font-bold uppercase tracking-[.05em] text-faint">
+                Act as <span className="font-medium normal-case">(dev only)</span>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {users.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      actAs(u);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] hover:bg-canvas ${
+                      u.id === user?.id ? "font-bold text-brand-deep" : ""
+                    }`}
+                  >
+                    <Avatar name={u.name} size={24} />
+                    <span className="min-w-0 flex-1 truncate">{u.name}</span>
+                  </button>
+                ))}
+                {users.length === 0 && (
+                  <div className="px-4 py-2 text-[12.5px] text-faint">No users yet.</div>
+                )}
+              </div>
+            </>
+          )}
           {user && (
             <>
               <div className="my-1.5 border-t border-line-2" />
               <button
-                onClick={() => {
-                  setUser(null);
-                  setOpen(false);
-                }}
+                onClick={signOut}
                 className="w-full px-4 py-2 text-left text-[13px] text-muted hover:bg-canvas"
               >
-                Sign out
+                {isAuthenticated ? "Sign out" : "Stop acting as"}
               </button>
             </>
           )}
