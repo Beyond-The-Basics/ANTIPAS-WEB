@@ -13,7 +13,28 @@ export interface User {
   phone: string;
   phone_verified: boolean;
   email: string | null;
+  email_verified: boolean;
   created_at: string;
+
+  // Onboarding profile — filled in by the post-signup step wizard, not at signup itself.
+  nickname: string | null;
+  age: number | null;
+  country: string;
+  city: string | null;
+  favorite_sports: Sport[];
+  speed_rating: number | null;
+  strength_rating: number | null;
+  stamina_rating: number | null;
+  agility_rating: number | null;
+  onboarding_completed: boolean;
+}
+
+/** Response of `POST /auth/login` and `POST /auth/signup`. */
+export interface AuthTokens {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user: User;
 }
 
 export interface Team {
