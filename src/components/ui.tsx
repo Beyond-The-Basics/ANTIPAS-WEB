@@ -255,3 +255,40 @@ export function ShortId({ id }: { id: string }) {
     </span>
   );
 }
+
+/**
+ * A 1-5 self-rating control: five dots, filled up to `value`. Used for the onboarding wizard's
+ * athletic characteristics and their read/edit surface on the profile page.
+ *
+ * Read-only when `onChange` is omitted (renders plain `<span>`s instead of `<button>`s, so it
+ * can't take focus or announce as interactive where there's nothing to do).
+ */
+export function RatingDots({
+  value,
+  onChange,
+  max = 5,
+}: {
+  value: number | null;
+  onChange?: (next: number) => void;
+  max?: number;
+}) {
+  const dots = Array.from({ length: max }, (_, i) => i + 1);
+  const Dot = onChange ? "button" : "span";
+  return (
+    <div className="flex items-center gap-1.5" role={onChange ? "group" : undefined}>
+      {dots.map((n) => (
+        <Dot
+          key={n}
+          type={onChange ? "button" : undefined}
+          aria-label={onChange ? `Set to ${n}` : undefined}
+          onClick={onChange ? () => onChange(n) : undefined}
+          className={`h-3 w-3 rounded-full border transition-colors ${
+            value !== null && n <= value
+              ? "border-brand bg-brand"
+              : "border-line-2 bg-transparent"
+          } ${onChange ? "cursor-pointer hover:border-brand" : ""}`}
+        />
+      ))}
+    </div>
+  );
+}

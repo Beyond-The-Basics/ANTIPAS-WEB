@@ -13,17 +13,52 @@ export interface User {
   phone: string;
   phone_verified: boolean;
   email: string | null;
+  email_verified: boolean;
   created_at: string;
+
+  // Onboarding profile — filled in by the post-signup step wizard, not at signup itself.
+  nickname: string | null;
+  age: number | null;
+  country: string;
+  city: string | null;
+  favorite_sports: Sport[];
+  speed_rating: number | null;
+  strength_rating: number | null;
+  stamina_rating: number | null;
+  agility_rating: number | null;
+  onboarding_completed: boolean;
+}
+
+/** Response of `POST /auth/login` and `POST /auth/signup`. */
+export interface AuthTokens {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user: User;
 }
 
 export interface Team {
   id: string;
   name: string;
+  description: string | null;
   logo_url: string | null;
+  country: string;
+  city: string | null;
   sport: Sport;
+  // The lineup format (e.g. 7v7) — null until a captain sets one at the roster-building stage.
+  // Required before `completed` can be set; any OpponentSearch this team publishes inherits it.
+  game_type_id: string | null;
   completed: boolean;
   is_adhoc: boolean;
   created_at: string;
+}
+
+/** The lineup catalog (e.g. soccer 5v5/6v6/7v7/11v11) a captain picks from for their team. */
+export interface GameType {
+  id: string;
+  sport: Sport;
+  label: string;
+  players_per_side: number;
 }
 
 export interface Membership {
@@ -32,6 +67,7 @@ export interface Membership {
   user_id: string;
   role: TeamRole;
   status: string;
+  jersey_number: number | null;
   joined_at: string;
 }
 
