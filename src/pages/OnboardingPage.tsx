@@ -12,7 +12,7 @@ import { api, ApiError } from "../api/client";
 import type { Sport } from "../api/types";
 import { RatingDots, SPORT_LABEL, SportDot } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
-import { ATHLETIC_TRAITS, COUNTRIES, DEFAULT_COUNTRY, type AthleticTraitKey } from "../lib/reference";
+import { ATHLETIC_TRAITS, COUNTRIES, DEFAULT_COUNTRY, type AthleticTraitKey } from "../lib/profile";
 
 const SPORTS: Sport[] = ["soccer", "tennis", "paddle"];
 
