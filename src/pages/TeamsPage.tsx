@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
-import { SPORTS, type Match, type Sport } from "../api/types";
+import type { Match } from "../api/types";
 import {
   AvatarStack,
   Button,
@@ -15,62 +15,12 @@ import {
   SportDot,
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
-import { useToast } from "../context/Toast";
 import { useMyTeams, useUsers } from "../lib/useMyTeams";
-
-function CreateTeam({ onCreated }: { onCreated: () => void }) {
-  const { user: acting } = useActingUser();
-  const { run, notify } = useToast();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [sport, setSport] = useState<Sport>("soccer");
-
-  const create = async () => {
-    if (!acting) return notify("Pick who you're acting as first", "error");
-    await run(async () => {
-      await api.post("/teams", { name, sport });
-      setName("");
-      setOpen(false);
-      onCreated();
-    }, "Team created — you are its captain");
-  };
-
-  if (!open) return <Button onClick={() => setOpen(true)}>+ Create team</Button>;
-
-  return (
-    <Card className="flex items-end gap-2.5 p-3.5">
-      <input
-        className="field w-[200px]"
-        autoFocus
-        placeholder="Team name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <select
-        className="field font-semibold"
-        value={sport}
-        onChange={(e) => setSport(e.target.value as Sport)}
-      >
-        {SPORTS.map((s) => (
-          <option key={s} value={s}>
-            {SPORT_LABEL[s]}
-          </option>
-        ))}
-      </select>
-      <Button onClick={create} disabled={!name || !acting}>
-        Create
-      </Button>
-      <Button variant="ghost" onClick={() => setOpen(false)}>
-        Cancel
-      </Button>
-    </Card>
-  );
-}
 
 export function TeamsPage() {
   const { user: acting } = useActingUser();
   const navigate = useNavigate();
-  const { teams, allTeams, reload } = useMyTeams(acting);
+  const { teams, allTeams } = useMyTeams(acting);
   const { userName } = useUsers();
   const [matchesByTeam, setMatchesByTeam] = useState<Record<string, Match[]>>({});
 
@@ -99,7 +49,9 @@ export function TeamsPage() {
           <h1 className="mb-1 text-[26px] font-bold">Teams</h1>
           <p className="text-sm text-muted">Teams you belong to</p>
         </div>
-        <CreateTeam onCreated={reload} />
+        <Button onClick={() => navigate("/teams/new")} disabled={!acting}>
+          + Create team
+        </Button>
       </div>
 
       {!acting ? (

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import { api } from "../api/client";
 import type {
+  GameType,
   Match,
   Membership,
   OpponentApplication,
@@ -13,6 +14,9 @@ import type {
   TeamRole,
   User,
 } from "../api/types";
+import { LineupCard } from "../components/LineupCard";
+import { LocationPicker } from "../components/LocationPicker";
+import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
 import {
   Avatar,
   Button,
@@ -29,6 +33,7 @@ import {
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
 import { dateLabel, expiresLabel } from "../lib/format";
+import { COUNTRIES } from "../lib/reference";
 
 type Tab = "members" | "recruiting" | "opponent" | "matches";
 
@@ -58,6 +63,7 @@ export function TeamDetailPage() {
   const [opponentApps, setOpponentApps] = useState<OpponentApplication[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
 
@@ -72,7 +78,7 @@ export function TeamDetailPage() {
 
   const reload = useCallback(async () => {
     await run(async () => {
-      const [t, m, mt, allRoster, rApps, allOpp, oApps, us, ts] = await Promise.all([
+      const [t, m, mt, allRoster, rApps, allOpp, oApps, us, ts, gts] = await Promise.all([
         api.get<Team>(`/teams/${teamId}`),
         api.get<Membership[]>(`/teams/${teamId}/members`),
         api.get<Match[]>(`/teams/${teamId}/matches`),
@@ -89,6 +95,7 @@ export function TeamDetailPage() {
           .catch(() => [] as OpponentApplication[]),
         api.get<User[]>(`/users`),
         api.get<Team[]>(`/teams`),
+        api.get<GameType[]>(`/game-types`),
       ]);
       setTeam(t);
       setName(t.name);
@@ -100,6 +107,7 @@ export function TeamDetailPage() {
       setOpponentApps(oApps);
       setUsers(us);
       setTeams(ts);
+      setGameTypes(gts);
     });
   }, [teamId, run]);
 
@@ -113,6 +121,18 @@ export function TeamDetailPage() {
     members.find((m) => m.user_id === acting?.id)?.role ?? null;
   const isCaptain = myRole === "captain";
   const manages = isCaptain || myRole === "admin";
+
+  const sportGameTypes = gameTypes.filter((g) => g.sport === team.sport);
+  const currentGameType = gameTypes.find((g) => g.id === team.game_type_id) ?? null;
+  // Mirrors the backend's own gate (team_service.update_team) so a captain sees why the button
+  // is disabled instead of clicking it and getting a toast — the API stays the source of truth.
+  const canComplete =
+    currentGameType !== null && members.length >= currentGameType.players_per_side;
+  const completeBlockedReason = !currentGameType
+    ? "Pick a lineup type first"
+    : !canComplete
+      ? `${currentGameType.label} needs ${currentGameType.players_per_side} active members — team has ${members.length}`
+      : undefined;
 
   const act = (fn: () => Promise<unknown>, message: string) => run(fn, message).then(reload);
 
@@ -173,6 +193,8 @@ export function TeamDetailPage() {
               <Button
                 size="sm"
                 variant="ghost"
+                disabled={!team.completed && !canComplete}
+                title={!team.completed ? completeBlockedReason : undefined}
                 onClick={() =>
                   act(
                     () => api.patch(`/teams/${team.id}`, { completed: !team.completed }),
@@ -203,6 +225,8 @@ export function TeamDetailPage() {
         </div>
       </div>
 
+      <AboutTeam team={team} manages={manages} act={act} />
+
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === "members" && (
@@ -213,15 +237,17 @@ export function TeamDetailPage() {
           isCaptain={isCaptain}
           userName={userName}
           act={act}
+          sportGameTypes={sportGameTypes}
+          currentGameType={currentGameType}
         />
       )}
 
       {tab === "recruiting" && (
         <RecruitingTab
-          teamId={teamId}
+          team={team}
+          members={members}
           searches={rosterSearches}
           apps={rosterApps}
-          users={users}
           userName={userName}
           manages={manages}
           act={act}
@@ -232,6 +258,7 @@ export function TeamDetailPage() {
       {tab === "opponent" && (
         <OpponentTab
           team={team}
+          currentGameType={currentGameType}
           searches={opponentSearches}
           apps={opponentApps}
           teamName={teamName}
@@ -247,7 +274,200 @@ export function TeamDetailPage() {
   );
 }
 
+// --- about ----------------------------------------------------------------------
+
+function AboutTeam({
+  team,
+  manages,
+  act,
+}: {
+  team: Team;
+  manages: boolean;
+  act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [description, setDescription] = useState(team.description ?? "");
+  const [country, setCountry] = useState(team.country);
+  const [city, setCity] = useState(team.city ?? "");
+
+  if (editing) {
+    return (
+      <Card className="mb-5 flex flex-col gap-3 p-4">
+        <div>
+          <Label>Description</Label>
+          <textarea
+            className="field w-full"
+            rows={2}
+            maxLength={500}
+            placeholder="What's this team about — level, vibe, how often you play…"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Label>Country</Label>
+            <select
+              className="field w-full"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <Label>City</Label>
+            <input
+              className="field w-full"
+              placeholder="(none)"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() =>
+              act(
+                () =>
+                  api.patch(`/teams/${team.id}`, {
+                    description: description.trim() || null,
+                    country,
+                    city: city.trim() || null,
+                  }),
+                "Team info updated",
+              ).then(() => setEditing(false))
+            }
+          >
+            Save
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const location = [team.city, team.country].filter(Boolean).join(", ");
+  return (
+    <Card className="mb-5 flex items-start justify-between gap-3 p-4">
+      <div className="min-w-0">
+        <p className="text-[13px] text-ink-2">
+          {team.description || <span className="text-faint">No description yet.</span>}
+        </p>
+        <p className="mt-1 text-[12px] text-muted">{location}</p>
+      </div>
+      {manages && (
+        <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+          Edit
+        </Button>
+      )}
+    </Card>
+  );
+}
+
 // --- members ------------------------------------------------------------------
+
+/** Small onBlur-save numeric field — avoids an API call per keystroke on the roster list. */
+function JerseyNumberInput({
+  value,
+  onSave,
+}: {
+  value: number | null;
+  onSave: (next: number | null) => void;
+}) {
+  const [local, setLocal] = useState(value?.toString() ?? "");
+  useEffect(() => setLocal(value?.toString() ?? ""), [value]);
+
+  const commit = () => {
+    const trimmed = local.trim();
+    const next = trimmed === "" ? null : Number(trimmed);
+    if (next !== value) onSave(next);
+  };
+
+  return (
+    <input
+      className="field w-[52px] !px-2 !py-1.5 text-center !text-[12px]"
+      type="number"
+      min={0}
+      max={99}
+      placeholder="#"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+    />
+  );
+}
+
+function LineupSection({
+  team,
+  members,
+  manages,
+  sportGameTypes,
+  currentGameType,
+  userName,
+  act,
+}: {
+  team: Team;
+  members: Membership[];
+  manages: boolean;
+  sportGameTypes: GameType[];
+  currentGameType: GameType | null;
+  userName: (id: string) => string;
+  act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+}) {
+  const [picking, setPicking] = useState(false);
+
+  return (
+    <div className="mb-6">
+      {manages && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {(picking || !currentGameType) &&
+            sportGameTypes.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() =>
+                  act(
+                    () => api.patch(`/teams/${team.id}`, { game_type_id: g.id }),
+                    `Lineup set to ${g.label}`,
+                  ).then(() => setPicking(false))
+                }
+                className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${
+                  g.id === currentGameType?.id
+                    ? "border-brand bg-brand-tint text-brand-deep"
+                    : "border-line bg-white text-muted hover:bg-canvas"
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          {currentGameType && !picking && (
+            <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
+              Change lineup
+            </Button>
+          )}
+          {picking && currentGameType && (
+            <Button size="sm" variant="ghost" onClick={() => setPicking(false)}>
+              Done
+            </Button>
+          )}
+        </div>
+      )}
+      {!currentGameType && !manages && (
+        <Empty>No lineup type set yet.</Empty>
+      )}
+      <LineupCard team={team} members={members} gameType={currentGameType} userName={userName} />
+    </div>
+  );
+}
 
 function MembersTab({
   team,
@@ -256,6 +476,8 @@ function MembersTab({
   isCaptain,
   userName,
   act,
+  sportGameTypes,
+  currentGameType,
 }: {
   team: Team;
   members: Membership[];
@@ -263,19 +485,48 @@ function MembersTab({
   isCaptain: boolean;
   userName: (id: string) => string;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  sportGameTypes: GameType[];
+  currentGameType: GameType | null;
 }) {
-  if (members.length === 0) return <Empty>No active members.</Empty>;
-
   return (
-    <div className="flex flex-col gap-2">
-      {members.map((m) => {
-        const canManage = manages && m.role !== "captain";
-        return (
-          <Card key={m.id} className="flex items-center gap-3 rounded-[10px] px-4 py-3">
-            <Avatar name={userName(m.user_id)} />
-            <div className="flex-1 text-[13.5px] font-semibold">{userName(m.user_id)}</div>
-            <RolePill role={m.role} />
-            {canManage && (
+    <div>
+      <LineupSection
+        team={team}
+        members={members}
+        manages={manages}
+        sportGameTypes={sportGameTypes}
+        currentGameType={currentGameType}
+        userName={userName}
+        act={act}
+      />
+
+      <SectionLabel>Roster</SectionLabel>
+      {members.length === 0 ? (
+        <Empty>No active members.</Empty>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {members.map((m) => {
+            const canManage = manages && m.role !== "captain";
+            return (
+              <Card key={m.id} className="flex items-center gap-3 rounded-[10px] px-4 py-3">
+                <Avatar name={userName(m.user_id)} />
+                <div className="flex-1 text-[13.5px] font-semibold">{userName(m.user_id)}</div>
+                {manages && (
+                  <JerseyNumberInput
+                    value={m.jersey_number}
+                    onSave={(next) =>
+                      act(
+                        () =>
+                          api.patch(`/teams/${team.id}/members/${m.user_id}/jersey-number`, {
+                            jersey_number: next,
+                          }),
+                        "Jersey number updated",
+                      )
+                    }
+                  />
+                )}
+                <RolePill role={m.role} />
+                {canManage && (
               <>
                 <Button
                   size="sm"
@@ -323,6 +574,8 @@ function MembersTab({
           </Card>
         );
       })}
+        </div>
+      )}
     </div>
   );
 }
@@ -330,29 +583,27 @@ function MembersTab({
 // --- recruiting ---------------------------------------------------------------
 
 function RecruitingTab({
-  teamId,
+  team,
+  members,
   searches,
   apps,
-  users,
   userName,
   manages,
   act,
   reload,
 }: {
-  teamId: string;
+  team: Team;
+  members: Membership[];
   searches: RosterSearch[];
   apps: RosterApplication[];
-  users: User[];
   userName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   reload: () => Promise<void>;
 }) {
-  const { run } = useToast();
   const [city, setCity] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [inviting, setInviting] = useState(false);
-  const [inviteUser, setInviteUser] = useState("");
 
   return (
     <div>
@@ -379,7 +630,7 @@ function RecruitingTab({
                   disabled={!city}
                   onClick={() =>
                     act(
-                      () => api.post(`/teams/${teamId}/roster-searches`, { city }),
+                      () => api.post(`/teams/${team.id}/roster-searches`, { city }),
                       "Roster search published",
                     ).then(() => {
                       setCity("");
@@ -482,37 +733,15 @@ function RecruitingTab({
 
       {manages &&
         (inviting ? (
-          <div className="flex items-center gap-2">
-            <select
-              className="field w-[220px]"
-              autoFocus
-              value={inviteUser}
-              onChange={(e) => setInviteUser(e.target.value)}
-            >
-              <option value="">— pick a player —</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              disabled={!inviteUser}
-              onClick={() =>
-                run(
-                  () => api.post(`/teams/${teamId}/roster-invitations`, { user_id: inviteUser }),
-                  "Invite sent",
-                ).then(() => {
-                  setInviteUser("");
-                  setInviting(false);
-                  return reload();
-                })
-              }
-            >
-              Invite
-            </Button>
-            <Button variant="ghost" onClick={() => setInviting(false)}>
-              Cancel
+          <div>
+            <PlayerSearchInvite
+              teamId={team.id}
+              sport={team.sport}
+              excludeUserIds={new Set(members.map((m) => m.user_id))}
+              onInvited={() => reload()}
+            />
+            <Button variant="ghost" className="mt-2.5" onClick={() => setInviting(false)}>
+              Done
             </Button>
           </div>
         ) : (
@@ -528,6 +757,7 @@ function RecruitingTab({
 
 function OpponentTab({
   team,
+  currentGameType,
   searches,
   apps,
   teamName,
@@ -535,15 +765,14 @@ function OpponentTab({
   act,
 }: {
   team: Team;
+  currentGameType: GameType | null;
   searches: OpponentSearch[];
   apps: OpponentApplication[];
   teamName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
 }) {
-  const { notify } = useToast();
   const [open, setOpen] = useState(false);
-  const [gameTypeId, setGameTypeId] = useState("");
   const [city, setCity] = useState("");
   const [pitch, setPitch] = useState("");
   const [date, setDate] = useState("");
@@ -558,15 +787,9 @@ function OpponentTab({
   }
 
   const publish = async () => {
-    if (!gameTypeId) return notify("A game_type_id is required", "error");
+    // No game_type_id in the body — the search inherits the team's own lineup type.
     await act(
-      () =>
-        api.post(`/teams/${team.id}/opponent-searches`, {
-          game_type_id: gameTypeId,
-          city,
-          pitch,
-          date,
-        }),
+      () => api.post(`/teams/${team.id}/opponent-searches`, { city, pitch, date }),
       "Opponent search published",
     ).then(() => {
       setCity("");
@@ -585,6 +808,7 @@ function OpponentTab({
               <div className="text-sm font-semibold">No open opponent search</div>
               <div className="mt-0.5 text-[12.5px] text-muted">
                 Terms are fixed at publish — responding teams can only accept or be rejected.
+                {currentGameType && <> Format: <strong className="text-ink">{currentGameType.label}</strong>, from your team's lineup.</>}
               </div>
             </div>
             {manages && !open && (
@@ -594,52 +818,48 @@ function OpponentTab({
             )}
           </div>
           {open && (
-            <div className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line-2 pt-4">
-              <div>
-                <Label>game_type_id</Label>
-                <input
-                  className="field w-[220px] font-mono !text-[12px]"
-                  placeholder="uuid — seeded via `make seed`"
-                  value={gameTypeId}
-                  onChange={(e) => setGameTypeId(e.target.value)}
-                />
+            <div className="mt-4 border-t border-line-2 pt-4">
+              <div className="mb-3">
+                <Label>Location</Label>
+                <LocationPicker onCityResolved={setCity} />
               </div>
-              <div>
-                <Label>City</Label>
-                <input
-                  className="field w-[150px]"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
+              <div className="flex flex-wrap items-end gap-2.5">
+                <div>
+                  <Label>City</Label>
+                  <input
+                    className="field w-[150px]"
+                    placeholder="Pick on the map, or type"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Pitch</Label>
+                  <input
+                    className="field w-[150px]"
+                    placeholder="Venue name"
+                    value={pitch}
+                    onChange={(e) => setPitch(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <input
+                    type="date"
+                    className="field"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+                <Button disabled={!city || !pitch || !date} onClick={publish}>
+                  Publish
+                </Button>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
               </div>
-              <div>
-                <Label>Pitch</Label>
-                <input
-                  className="field w-[150px]"
-                  value={pitch}
-                  onChange={(e) => setPitch(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Date</Label>
-                <input
-                  type="date"
-                  className="field"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              <Button disabled={!gameTypeId || !city || !pitch || !date} onClick={publish}>
-                Publish
-              </Button>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
             </div>
           )}
-          <p className="mt-3 text-[11.5px] leading-snug text-faint">
-            There is no list-game-types endpoint yet, so the id has to be pasted in by hand.
-          </p>
         </Card>
       ) : (
         searches.map((s) => (
