@@ -105,11 +105,15 @@ export function TeamsPage() {
       .map((search) => {
         const team = teamById.get(search.team_id);
         if (!team) return null;
-        if (team.country !== country) return null;
-        if (cityName && team.city !== cityName) return null;
+        // The listing's own country/city (where they're recruiting) drives placement, falling
+        // back to the team's base location for older listings that predate the country field.
+        const listingCountry = search.country ?? team.country;
+        const listingCity = search.city ?? team.city;
+        if (listingCountry !== country) return null;
+        if (cityName && listingCity !== cityName) return null;
         const city =
-          team.city && isCountry(team.country)
-            ? CITIES_BY_COUNTRY[team.country].find((c) => c.name === team.city)
+          listingCity && isCountry(listingCountry)
+            ? CITIES_BY_COUNTRY[listingCountry].find((c) => c.name === listingCity)
             : undefined;
         return {
           search,

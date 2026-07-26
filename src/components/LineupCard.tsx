@@ -1,19 +1,24 @@
 // The team's lineup, styled as a pitch graphic — adapted from a reference "Starting Lineup"
-// template to Kickoff's own palette (brand green pitch, white player chips) rather than the
-// reference's navy/yellow.
+// template to Kickoff's own palette (brand green pitch, white player chips).
 //
-// One real gap versus the reference: there is no position data anywhere in the app (no GK/DEF/
-// MID/FWD, no starter/sub flag) — only role (captain/admin/member) and, now, jersey number. So
-// this does NOT place players by tactical position; it distributes them into rows that narrow
-// toward a single anchor at the bottom (the captain), purely for the pitch-diagram look. The
-// "starters" / subs split below the lineup size is ordered by who joined first, not a real
-// selection — there's no field for that either.
+// Positions are stored per membership (lineup_position = slot index) so the captain can arrange
+// the formation. When a lineup type is set the pitch shows exactly players_per_side positions:
+// filled slots get a player chip, the rest render as empty placeholders. Members without an
+// explicit position auto-fill the remaining slots (captain first) so the default still looks
+// sensible before anyone drags anything.
 //
-// When a lineup type is set the pitch always shows that many positions (players_per_side), even
-// before the roster is full: filled slots get a player chip, the rest render as empty placeholders.
+// In editable mode (captain), chips are draggable and every slot — plus the subs strip — is a drop
+// target: dropping swaps/moves players and reports the whole new arrangement via onReorder.
+
+import { useState } from "react";
 
 import type { GameType, Membership, Team } from "../api/types";
 import { Avatar, SPORT_LABEL } from "./ui";
+
+export interface LineupAssignment {
+  user_id: string;
+  position: number | null;
+}
 
 /** Row sizes, anchor-first, that fan out into a rough pyramid — decorative only, not tactical. */
 function formationRows(count: number): number[] {
@@ -32,15 +37,57 @@ function formationRows(count: number): number[] {
   return rows;
 }
 
+/** Resolve members into `total` pitch slots (respecting explicit positions) plus a subs list. */
+function buildSlots(members: Membership[], total: number): {
+  slots: (Membership | null)[];
+  subs: Membership[];
+} {
+  const placed = new Map<number, Membership>();
+  const unplaced: Membership[] = [];
+  for (const m of members) {
+    const p = m.lineup_position;
+    if (p !== null && p >= 0 && p < total && !placed.has(p)) placed.set(p, m);
+    else unplaced.push(m);
+  }
+  // Captain first among the auto-filled, otherwise keep join order.
+  unplaced.sort((a, b) => (a.role === "captain" ? -1 : b.role === "captain" ? 1 : 0));
+
+  const slots: (Membership | null)[] = [];
+  let ui = 0;
+  for (let i = 0; i < total; i++) {
+    if (placed.has(i)) slots.push(placed.get(i)!);
+    else if (ui < unplaced.length) slots.push(unplaced[ui++]);
+    else slots.push(null);
+  }
+  return { slots, subs: unplaced.slice(ui) };
+}
+
+function assignmentsFrom(slots: (Membership | null)[], subs: Membership[]): LineupAssignment[] {
+  const out: LineupAssignment[] = [];
+  slots.forEach((m, i) => m && out.push({ user_id: m.user_id, position: i }));
+  subs.forEach((m) => out.push({ user_id: m.user_id, position: null }));
+  return out;
+}
+
 function PlayerChip({
   name,
   jerseyNumber,
+  draggable,
+  onDragStart,
 }: {
   name: string;
   jerseyNumber: number | null;
+  draggable?: boolean;
+  onDragStart?: () => void;
 }) {
   return (
-    <div className="flex w-[76px] flex-none flex-col items-center gap-1.5">
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      className={`flex w-[76px] flex-none flex-col items-center gap-1.5 ${
+        draggable ? "cursor-grab active:cursor-grabbing" : ""
+      }`}
+    >
       <div className="relative">
         <Avatar name={name} size={44} />
         {jerseyNumber !== null && (
@@ -70,36 +117,67 @@ function EmptyChip() {
   );
 }
 
+type DragSource = { kind: "slot"; index: number } | { kind: "sub"; index: number };
+
 export function LineupCard({
   team,
   members,
   gameType,
   userName,
+  editable = false,
+  onReorder,
 }: {
   team: Team;
   members: Membership[];
   gameType: GameType | null;
   userName: (id: string) => string;
+  /** When true (captain), chips can be dragged between slots and the subs strip. */
+  editable?: boolean;
+  onReorder?: (assignments: LineupAssignment[]) => void;
 }) {
-  // With a lineup type, the pitch shows exactly players_per_side positions (unfilled ones render
-  // empty). Without one, it just shows however many members there are.
-  const startingCount = gameType?.players_per_side ?? members.length;
-  const starters = members.slice(0, startingCount);
-  const subs = members.slice(startingCount);
-  const rows = formationRows(startingCount);
+  const [drag, setDrag] = useState<DragSource | null>(null);
 
-  // Anchor (captain if present, else first) at the bottom, then pad with nulls so every position
-  // up to startingCount has a slot — filled or empty.
-  const captain = starters.find((m) => m.role === "captain");
-  const rest = starters.filter((m) => m.id !== captain?.id);
-  const ordered: (Membership | null)[] = captain ? [captain, ...rest] : [...starters];
-  while (ordered.length < startingCount) ordered.push(null);
+  const total = gameType?.players_per_side ?? members.length;
+  const { slots, subs } = buildSlots(members, total);
+  const rows = formationRows(total);
+
+  // Consume slots row by row, anchor row (1) rendered at the bottom via flex-col-reverse.
   let cursor = 0;
-  const rowsOfMembers = rows.map((size) => {
-    const slice = ordered.slice(cursor, cursor + size);
+  const rowsOfSlots = rows.map((size) => {
+    const slice = slots.map((m, i) => ({ m, i })).slice(cursor, cursor + size);
     cursor += size;
     return slice;
   });
+
+  const dropOnSlot = (target: number) => {
+    if (!drag || !onReorder) return;
+    const nextSlots = [...slots];
+    const nextSubs = [...subs];
+    if (drag.kind === "slot") {
+      [nextSlots[drag.index], nextSlots[target]] = [nextSlots[target], nextSlots[drag.index]];
+    } else {
+      const mover = nextSubs.splice(drag.index, 1)[0];
+      const displaced = nextSlots[target];
+      nextSlots[target] = mover;
+      if (displaced) nextSubs.push(displaced);
+    }
+    setDrag(null);
+    onReorder(assignmentsFrom(nextSlots, nextSubs));
+  };
+
+  const dropOnSubs = () => {
+    if (!drag || !onReorder || drag.kind !== "slot") return;
+    const nextSlots = [...slots];
+    const mover = nextSlots[drag.index];
+    if (!mover) return;
+    nextSlots[drag.index] = null;
+    setDrag(null);
+    onReorder(assignmentsFrom(nextSlots, [...subs, mover]));
+  };
+
+  const allowDrop = (e: React.DragEvent) => {
+    if (editable) e.preventDefault();
+  };
 
   return (
     <div className="overflow-hidden rounded-panel border border-line bg-white">
@@ -117,45 +195,76 @@ export function LineupCard({
         )}
       </div>
 
+      {editable && (
+        <div className="border-b border-line bg-canvas px-5 py-2 text-[11.5px] font-semibold text-muted">
+          Drag players to rearrange the lineup — drop onto a spot to swap, or onto Subs to bench.
+        </div>
+      )}
+
       <div className="relative flex flex-col-reverse items-center gap-5 bg-brand bg-stripe-lg px-4 py-7">
         {/* Pitch markings — decorative, no meaning beyond "this is a pitch". */}
         <div className="pointer-events-none absolute inset-3 rounded-lg border-2 border-white/25" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/25" />
 
-        {startingCount === 0 ? (
-          <p className="relative text-center text-[12.5px] text-white/85">
-            No active members yet.
-          </p>
+        {total === 0 ? (
+          <p className="relative text-center text-[12.5px] text-white/85">No active members yet.</p>
         ) : (
-          rowsOfMembers.map((row, i) => (
-            <div key={i} className="relative flex justify-center gap-4">
-              {row.map((m, j) =>
-                m ? (
-                  <PlayerChip key={m.id} name={userName(m.user_id)} jerseyNumber={m.jersey_number} />
-                ) : (
-                  <EmptyChip key={`empty-${i}-${j}`} />
-                ),
-              )}
+          rowsOfSlots.map((row, ri) => (
+            <div key={ri} className="relative flex justify-center gap-4">
+              {row.map(({ m, i }) => (
+                <div
+                  key={i}
+                  onDragOver={allowDrop}
+                  onDrop={() => dropOnSlot(i)}
+                  className={editable ? "rounded-xl transition hover:bg-white/10" : ""}
+                >
+                  {m ? (
+                    <PlayerChip
+                      name={userName(m.user_id)}
+                      jerseyNumber={m.jersey_number}
+                      draggable={editable}
+                      onDragStart={() => setDrag({ kind: "slot", index: i })}
+                    />
+                  ) : (
+                    <EmptyChip />
+                  )}
+                </div>
+              ))}
             </div>
           ))
         )}
       </div>
 
-      {subs.length > 0 && (
-        <div className="border-t border-line px-5 py-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-muted">
-            Subs
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] font-semibold text-ink-2">
-            {subs.map((m) => (
-              <span key={m.id}>
-                {m.jersey_number !== null && (
-                  <span className="mr-1 text-faint">#{m.jersey_number}</span>
-                )}
-                {userName(m.user_id)}
-              </span>
-            ))}
-          </div>
+      {(subs.length > 0 || editable) && (
+        <div
+          className="border-t border-line px-5 py-4"
+          onDragOver={allowDrop}
+          onDrop={dropOnSubs}
+        >
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-muted">Subs</div>
+          {subs.length === 0 ? (
+            <p className="text-[12px] text-faint">
+              {editable ? "Drop a player here to bench them." : "None."}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2.5">
+              {subs.map((m, i) => (
+                <div
+                  key={m.id}
+                  draggable={editable}
+                  onDragStart={() => editable && setDrag({ kind: "sub", index: i })}
+                  className={`rounded-full bg-canvas px-3 py-1.5 text-[12.5px] font-semibold text-ink-2 ${
+                    editable ? "cursor-grab active:cursor-grabbing" : ""
+                  }`}
+                >
+                  {m.jersey_number !== null && (
+                    <span className="mr-1 text-faint">#{m.jersey_number}</span>
+                  )}
+                  {userName(m.user_id)}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
