@@ -74,6 +74,7 @@ export interface Membership {
   role: TeamRole;
   status: string;
   jersey_number: number | null;
+  lineup_position: number | null;
   joined_at: string;
 }
 
@@ -81,6 +82,7 @@ export interface RosterSearch {
   id: string;
   team_id: string;
   city: string;
+  country: string | null;
   status: ListingStatus;
   expires_at: string;
   created_at: string;

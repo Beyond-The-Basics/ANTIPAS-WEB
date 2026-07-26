@@ -32,7 +32,7 @@ import {
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
-import { CITIES_BY_COUNTRY, isCountry } from "../lib/cities";
+import { CITIES_BY_COUNTRY, type Country, findCity, isCountry } from "../lib/cities";
 import { dateLabel, expiresLabel } from "../lib/format";
 import { COUNTRIES } from "../lib/reference";
 
@@ -122,6 +122,11 @@ export function TeamDetailPage() {
     members.find((m) => m.user_id === acting?.id)?.role ?? null;
   const isCaptain = myRole === "captain";
   const manages = isCaptain || myRole === "admin";
+  // Someone browsing a team they might join (e.g. from the recruiting map) only sees the roster
+  // and lineup — the recruiting / opponent / matches tabs are for the team's own members.
+  const isMember = myRole !== null;
+  const visibleTabs = isMember ? TABS : TABS.filter((t) => t.id === "members");
+  const activeTab: Tab = isMember ? tab : "members";
 
   const sportGameTypes = gameTypes.filter((g) => g.sport === team.sport);
   const currentGameType = gameTypes.find((g) => g.id === team.game_type_id) ?? null;
@@ -223,9 +228,9 @@ export function TeamDetailPage() {
 
       <AboutTeam team={team} manages={manages} act={act} />
 
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+      <Tabs tabs={visibleTabs} active={activeTab} onChange={setTab} />
 
-      {tab === "members" && (
+      {activeTab === "members" && (
         <MembersTab
           team={team}
           members={members}
@@ -238,7 +243,7 @@ export function TeamDetailPage() {
         />
       )}
 
-      {tab === "recruiting" && (
+      {activeTab === "recruiting" && (
         <RecruitingTab
           team={team}
           members={members}
@@ -251,7 +256,7 @@ export function TeamDetailPage() {
         />
       )}
 
-      {tab === "opponent" && (
+      {activeTab === "opponent" && (
         <OpponentTab
           team={team}
           currentGameType={currentGameType}
@@ -263,7 +268,7 @@ export function TeamDetailPage() {
         />
       )}
 
-      {tab === "matches" && (
+      {activeTab === "matches" && (
         <MatchesTab teamId={teamId} matches={matches} teamName={teamName} />
       )}
     </>
@@ -469,7 +474,16 @@ function LineupSection({
       {!currentGameType && !isCaptain && (
         <Empty>No lineup type set yet — the captain sets it.</Empty>
       )}
-      <LineupCard team={team} members={members} gameType={currentGameType} userName={userName} />
+      <LineupCard
+        team={team}
+        members={members}
+        gameType={currentGameType}
+        userName={userName}
+        editable={isCaptain}
+        onReorder={(assignments) =>
+          act(() => api.put(`/teams/${team.id}/lineup`, { assignments }), "Lineup updated")
+        }
+      />
     </div>
   );
 }
@@ -606,14 +620,19 @@ function RecruitingTab({
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   reload: () => Promise<void>;
 }) {
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState<Country>(
+    isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
+  );
+  const [city, setCity] = useState(
+    isCountry(team.country) && team.city && findCity(team.country, team.city) ? team.city : "",
+  );
   const [publishing, setPublishing] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   return (
     <div>
       {searches.length === 0 ? (
-        <Card className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
+        <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 px-[18px] py-4">
           <div>
             <div className="text-sm font-semibold">No open roster search</div>
             <div className="mt-0.5 text-[12.5px] text-muted">
@@ -622,23 +641,41 @@ function RecruitingTab({
           </div>
           {manages &&
             (publishing ? (
-              <div className="flex flex-none items-center gap-2">
-                <input
-                  className="field w-[160px]"
-                  autoFocus
-                  placeholder="City"
+              <div className="flex flex-none flex-wrap items-center gap-2">
+                <select
+                  className="field !py-2 !text-[12.5px]"
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value as Country);
+                    setCity("");
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="field !py-2 !text-[12.5px]"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                />
+                >
+                  <option value="">Select a city…</option>
+                  {CITIES_BY_COUNTRY[country].map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   size="sm"
                   disabled={!city}
                   onClick={() =>
                     act(
-                      () => api.post(`/teams/${team.id}/roster-searches`, { city }),
+                      () => api.post(`/teams/${team.id}/roster-searches`, { city, country }),
                       "Roster search published",
                     ).then(() => {
-                      setCity("");
                       setPublishing(false);
                     })
                   }
