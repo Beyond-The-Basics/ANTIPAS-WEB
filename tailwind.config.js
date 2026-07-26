@@ -5,10 +5,6 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      fontFamily: {
-        // The Kickoff design's display face, used for the logo/brand mark.
-        display: ["Anton", "system-ui", "sans-serif"],
-      },
       colors: {
         canvas: "#f4f5f4",
         ink: "#141414",

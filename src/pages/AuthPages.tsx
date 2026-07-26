@@ -29,10 +29,8 @@ function AuthShell({
       <header className="border-b border-landing-line">
         <div className="mx-auto flex h-[70px] w-full max-w-[1180px] items-center px-8">
           <Link to="/" className="flex flex-none items-center gap-[11px] no-underline">
-            <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-brand font-display text-[20px] leading-none text-white">
-              K
-            </div>
-            <div className="font-display text-xl tracking-[0.01em] text-ink">Kickoff</div>
+            <img src="/logo-icon.png" alt="" className="h-[34px] w-[34px]" />
+            <div className="text-xl font-extrabold tracking-[-0.02em] text-ink">Kickoff</div>
           </Link>
         </div>
       </header>
