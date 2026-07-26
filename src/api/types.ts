@@ -27,6 +27,12 @@ export interface User {
   stamina_rating: number | null;
   agility_rating: number | null;
   onboarding_completed: boolean;
+
+  // Saved discoverability location, editable on the profile and reused as the default when
+  // publishing a PlayerAvailability.
+  latitude: number | null;
+  longitude: number | null;
+  radius_km: number | null;
 }
 
 /** Response of `POST /auth/login` and `POST /auth/signup`. */
@@ -131,6 +137,11 @@ export interface PlayerAvailability {
   user_id: string;
   sport: Sport;
   city: string;
+  country: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  radius_km: number | null;
   status: ListingStatus;
   expires_at: string;
   created_at: string;
