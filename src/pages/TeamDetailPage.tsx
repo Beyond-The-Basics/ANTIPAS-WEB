@@ -15,7 +15,7 @@ import type {
   User,
 } from "../api/types";
 import { LineupCard } from "../components/LineupCard";
-import { LocationPicker } from "../components/LocationPicker";
+import { NegotiationModal } from "../components/NegotiationModal";
 import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
 import {
   Avatar,
@@ -67,6 +67,7 @@ export function TeamDetailPage() {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
+  const [negotiation, setNegotiation] = useState<OpponentApplication | null>(null);
 
   const userName = useCallback(
     (id: string) => users.find((u) => u.id === id)?.name ?? id.slice(0, 8),
@@ -265,11 +266,27 @@ export function TeamDetailPage() {
           teamName={teamName}
           manages={manages}
           act={act}
+          openNegotiation={setNegotiation}
         />
       )}
 
       {activeTab === "matches" && (
         <MatchesTab teamId={teamId} matches={matches} teamName={teamName} />
+      )}
+
+      {negotiation && (
+        <NegotiationModal
+          application={negotiation}
+          myTeamId={team.id}
+          teamName={teamName}
+          userName={userName}
+          onClose={() => setNegotiation(null)}
+          onAgreed={(match) => {
+            setNegotiation(null);
+            void reload();
+            navigate(`/matches/${match.id}`);
+          }}
+        />
       )}
     </>
   );
@@ -805,6 +822,7 @@ function OpponentTab({
   teamName,
   manages,
   act,
+  openNegotiation,
 }: {
   team: Team;
   currentGameType: GameType | null;
@@ -813,9 +831,15 @@ function OpponentTab({
   teamName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  openNegotiation: (app: OpponentApplication) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState<Country>(
+    isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
+  );
+  const [city, setCity] = useState(
+    isCountry(team.country) && team.city && findCity(team.country, team.city) ? team.city : "",
+  );
   const [pitch, setPitch] = useState("");
   const [date, setDate] = useState("");
 
@@ -829,12 +853,18 @@ function OpponentTab({
   }
 
   const publish = async () => {
-    // No game_type_id in the body — the search inherits the team's own lineup type.
+    // No game_type_id in the body — the search inherits the team's own lineup type. The date/time
+    // and pitch are the starting proposal; they get finalised in the negotiation chat.
     await act(
-      () => api.post(`/teams/${team.id}/opponent-searches`, { city, pitch, date }),
+      () =>
+        api.post(`/teams/${team.id}/opponent-searches`, {
+          city,
+          country,
+          pitch,
+          date: new Date(date).toISOString(),
+        }),
       "Opponent search published",
     ).then(() => {
-      setCity("");
       setPitch("");
       setDate("");
       setOpen(false);
@@ -849,7 +879,8 @@ function OpponentTab({
             <div>
               <div className="text-sm font-semibold">No open opponent search</div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                Terms are fixed at publish — responding teams can only accept or be rejected.
+                These are your opening terms — the responding team can chat to renegotiate the
+                date, time and pitch before you both agree.
                 {currentGameType && <> Format: <strong className="text-ink">{currentGameType.label}</strong>, from your team's lineup.</>}
               </div>
             </div>
@@ -860,46 +891,63 @@ function OpponentTab({
             )}
           </div>
           {open && (
-            <div className="mt-4 border-t border-line-2 pt-4">
-              <div className="mb-3">
-                <Label>Location</Label>
-                <LocationPicker onCityResolved={setCity} />
+            <div className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line-2 pt-4">
+              <div>
+                <Label>Country</Label>
+                <select
+                  className="field !text-[13px]"
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value as Country);
+                    setCity("");
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="flex flex-wrap items-end gap-2.5">
-                <div>
-                  <Label>City</Label>
-                  <input
-                    className="field w-[150px]"
-                    placeholder="Pick on the map, or type"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Pitch</Label>
-                  <input
-                    className="field w-[150px]"
-                    placeholder="Venue name"
-                    value={pitch}
-                    onChange={(e) => setPitch(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Date</Label>
-                  <input
-                    type="date"
-                    className="field"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-                <Button disabled={!city || !pitch || !date} onClick={publish}>
-                  Publish
-                </Button>
-                <Button variant="ghost" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
+              <div>
+                <Label>City</Label>
+                <select
+                  className="field !text-[13px]"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {CITIES_BY_COUNTRY[country].map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+              <div>
+                <Label>Pitch</Label>
+                <input
+                  className="field w-[150px]"
+                  placeholder="Venue name"
+                  value={pitch}
+                  onChange={(e) => setPitch(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Date &amp; time</Label>
+                <input
+                  type="datetime-local"
+                  className="field"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+              <Button disabled={!city || !pitch || !date} onClick={publish}>
+                Publish
+              </Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
             </div>
           )}
         </Card>
@@ -933,7 +981,12 @@ function OpponentTab({
       )}
 
       <SectionLabel>Responding teams</SectionLabel>
-      <ResponderList searches={searches} teamName={teamName} manages={manages} act={act} />
+      <ResponderList
+        searches={searches}
+        teamName={teamName}
+        manages={manages}
+        openNegotiation={openNegotiation}
+      />
 
       {apps.length > 0 && (
         <div className="mt-8">
@@ -944,7 +997,12 @@ function OpponentTab({
                 <div className="flex-1 text-[13.5px] font-semibold">
                   Challenge <ShortId id={a.opponent_search_id} />
                 </div>
-                <Pill value={a.status} />
+                <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
+                {a.status === "accepted" && (
+                  <Button size="sm" onClick={() => openNegotiation(a)}>
+                    Open chat
+                  </Button>
+                )}
                 {manages && a.status === "pending" && (
                   <Button
                     size="sm"
@@ -970,13 +1028,14 @@ function ResponderList({
   searches,
   teamName,
   manages,
-  act,
+  openNegotiation,
 }: {
   searches: OpponentSearch[];
   teamName: (id: string) => string;
   manages: boolean;
-  act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  openNegotiation: (app: OpponentApplication) => void;
 }) {
+  const { run } = useToast();
   const [bySearch, setBySearch] = useState<Record<string, OpponentApplication[]>>({});
 
   const load = useCallback(async () => {
@@ -1005,18 +1064,26 @@ function ResponderList({
           <div className="flex-1 text-[13.5px] font-semibold">
             {teamName(a.responding_team_id)}
           </div>
-          <Pill value={a.status} />
+          <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
           {manages && a.status === "pending" && (
             <Button
               size="sm"
               onClick={() =>
-                act(
-                  () => api.post(`/opponent-applications/${a.id}/confirm`),
-                  "Confirmed — match created",
-                ).then(load)
+                run(async () => {
+                  const accepted = await api.post<OpponentApplication>(
+                    `/opponent-applications/${a.id}/accept`,
+                  );
+                  await load();
+                  openNegotiation(accepted);
+                }, "Challenge accepted — negotiate the details")
               }
             >
-              Confirm → Match
+              Accept challenge
+            </Button>
+          )}
+          {a.status === "accepted" && (
+            <Button size="sm" onClick={() => openNegotiation(a)}>
+              Open chat
             </Button>
           )}
         </Card>

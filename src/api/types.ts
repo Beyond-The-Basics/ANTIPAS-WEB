@@ -1,7 +1,12 @@
 export type Sport = "soccer" | "tennis" | "paddle";
 export type TeamRole = "captain" | "admin" | "member";
 export type ListingStatus = "open" | "closed" | "confirmed" | "withdrawn" | "expired";
-export type ApplicationStatus = "pending" | "confirmed" | "declined" | "withdrawn";
+export type ApplicationStatus =
+  | "pending"
+  | "accepted"
+  | "confirmed"
+  | "declined"
+  | "withdrawn";
 export type ApplicationDirection = "player_applied" | "team_invited";
 export type MatchStatus = "confirmed" | "cancelled_by_a" | "cancelled_by_b" | "played";
 
@@ -104,8 +109,9 @@ export interface OpponentSearch {
   sport: Sport;
   game_type_id: string;
   city: string;
+  country: string | null;
   pitch: string;
-  date: string;
+  date: string; // ISO datetime (date + time)
   status: ListingStatus;
   expires_at: string;
   created_at: string;
@@ -116,6 +122,18 @@ export interface OpponentApplication {
   opponent_search_id: string;
   responding_team_id: string;
   status: ApplicationStatus;
+  // Live negotiation proposal, present once the challenge is accepted.
+  proposed_date: string | null;
+  proposed_pitch: string | null;
+  proposed_by_team_id: string | null;
+  created_at: string;
+}
+
+export interface NegotiationMessage {
+  id: string;
+  opponent_application_id: string;
+  sender_user_id: string;
+  body: string;
   created_at: string;
 }
 
