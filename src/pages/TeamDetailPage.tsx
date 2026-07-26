@@ -144,7 +144,7 @@ export function TeamDetailPage() {
         ← Teams
       </Link>
 
-      <div className="mb-1.5 flex items-center justify-between gap-4">
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3.5">
           <SportDot sport={team.sport} size={44} />
           <div className="min-w-0">
@@ -189,7 +189,7 @@ export function TeamDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-none gap-2">
+        <div className="flex flex-wrap gap-2">
           {isCaptain && !renaming && (
             <>
               <Button
@@ -544,7 +544,7 @@ function MembersTab({
           {members.map((m) => {
             const canManage = manages && m.role !== "captain";
             return (
-              <Card key={m.id} className="flex items-center gap-3 rounded-[10px] px-4 py-3">
+              <Card key={m.id} className="flex flex-wrap items-center gap-2 rounded-[10px] px-4 py-3">
                 <Avatar name={userName(m.user_id)} />
                 <div className="flex-1 text-[13.5px] font-semibold">{userName(m.user_id)}</div>
                 {manages && (

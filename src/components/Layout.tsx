@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
 import type { User } from "../api/types";
@@ -146,23 +146,60 @@ function ProfileChip() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => setMenuOpen(false), [pathname]);
+
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-20 border-b border-line bg-white">
-        <div className="mx-auto flex h-[62px] max-w-[1100px] items-center gap-6 px-6">
+        <div className="mx-auto flex h-[62px] max-w-[1100px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <NavLink to="/home" className="flex flex-none items-center gap-2.5 no-underline">
             <img src="/logo-icon.png" alt="" className="h-[30px] w-[30px] flex-none" />
             <span className="text-lg font-extrabold tracking-[-0.01em] text-ink">Kickoff</span>
           </NavLink>
-          <nav className="flex gap-0.5">
+          {/* Desktop nav */}
+          <nav className="hidden gap-0.5 md:flex">
             {NAV.map((n) => (
               <Nav key={n.to} {...n} />
             ))}
           </nav>
           <ProfileChip />
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-field border border-line text-ink md:hidden"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {menuOpen ? <path d="M6 6l12 12M6 18L18 6" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+            </svg>
+          </button>
         </div>
+        {/* Mobile nav sheet */}
+        {menuOpen && (
+          <nav className="flex flex-col gap-1 border-t border-line bg-white px-4 py-3 md:hidden">
+            {NAV.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                className={({ isActive }) =>
+                  `rounded-field px-3 py-2.5 text-sm font-semibold no-underline ${
+                    isActive ? "bg-chip text-ink" : "text-[#6b6a60] hover:text-ink"
+                  }`
+                }
+              >
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </header>
-      <main className="mx-auto max-w-[1100px] px-6 pb-16 pt-10">{children}</main>
+      <main className="mx-auto max-w-[1100px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10">{children}</main>
     </div>
   );
 }
