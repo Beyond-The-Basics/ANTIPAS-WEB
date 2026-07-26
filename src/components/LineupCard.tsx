@@ -8,6 +8,9 @@
 // toward a single anchor at the bottom (the captain), purely for the pitch-diagram look. The
 // "starters" / subs split below the lineup size is ordered by who joined first, not a real
 // selection — there's no field for that either.
+//
+// When a lineup type is set the pitch always shows that many positions (players_per_side), even
+// before the roster is full: filled slots get a player chip, the rest render as empty placeholders.
 
 import type { GameType, Membership, Team } from "../api/types";
 import { Avatar, SPORT_LABEL } from "./ui";
@@ -53,6 +56,20 @@ function PlayerChip({
   );
 }
 
+/** An unfilled lineup position — same footprint as PlayerChip so the rows stay aligned. */
+function EmptyChip() {
+  return (
+    <div className="flex w-[76px] flex-none flex-col items-center gap-1.5">
+      <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed border-white/50 text-white/60">
+        <span className="text-lg font-bold leading-none">+</span>
+      </div>
+      <div className="w-full rounded-full bg-white/15 px-1.5 py-[3px] text-center text-[10px] font-bold uppercase tracking-[.02em] text-white/60">
+        Open
+      </div>
+    </div>
+  );
+}
+
 export function LineupCard({
   team,
   members,
@@ -64,15 +81,19 @@ export function LineupCard({
   gameType: GameType | null;
   userName: (id: string) => string;
 }) {
+  // With a lineup type, the pitch shows exactly players_per_side positions (unfilled ones render
+  // empty). Without one, it just shows however many members there are.
   const startingCount = gameType?.players_per_side ?? members.length;
   const starters = members.slice(0, startingCount);
   const subs = members.slice(startingCount);
-  const rows = formationRows(starters.length);
+  const rows = formationRows(startingCount);
 
-  // Consume `starters` row by row, anchor (captain if present, else first) at the bottom.
+  // Anchor (captain if present, else first) at the bottom, then pad with nulls so every position
+  // up to startingCount has a slot — filled or empty.
   const captain = starters.find((m) => m.role === "captain");
   const rest = starters.filter((m) => m.id !== captain?.id);
-  const ordered = captain ? [captain, ...rest] : starters;
+  const ordered: (Membership | null)[] = captain ? [captain, ...rest] : [...starters];
+  while (ordered.length < startingCount) ordered.push(null);
   let cursor = 0;
   const rowsOfMembers = rows.map((size) => {
     const slice = ordered.slice(cursor, cursor + size);
@@ -101,16 +122,20 @@ export function LineupCard({
         <div className="pointer-events-none absolute inset-3 rounded-lg border-2 border-white/25" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/25" />
 
-        {starters.length === 0 ? (
+        {startingCount === 0 ? (
           <p className="relative text-center text-[12.5px] text-white/85">
             No active members yet.
           </p>
         ) : (
           rowsOfMembers.map((row, i) => (
             <div key={i} className="relative flex justify-center gap-4">
-              {row.map((m) => (
-                <PlayerChip key={m.id} name={userName(m.user_id)} jerseyNumber={m.jersey_number} />
-              ))}
+              {row.map((m, j) =>
+                m ? (
+                  <PlayerChip key={m.id} name={userName(m.user_id)} jerseyNumber={m.jersey_number} />
+                ) : (
+                  <EmptyChip key={`empty-${i}-${j}`} />
+                ),
+              )}
             </div>
           ))
         )}

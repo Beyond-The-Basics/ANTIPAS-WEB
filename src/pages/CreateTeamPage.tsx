@@ -14,6 +14,7 @@ import { SPORTS, type Sport, type Team } from "../api/types";
 import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
 import { Button, Card, Label, PageTitle, SPORT_LABEL, SportDot } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
+import { CITIES_BY_COUNTRY, isCountry } from "../lib/cities";
 import { COUNTRIES, DEFAULT_COUNTRY } from "../lib/reference";
 
 const STEPS = ["Basics", "Location", "Invite members"] as const;
@@ -171,7 +172,10 @@ export function CreateTeamPage() {
               <select
                 className="field w-full"
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
+                onChange={(e) => {
+                  setCountry(e.target.value);
+                  setCity("");
+                }}
               >
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>
@@ -182,14 +186,18 @@ export function CreateTeamPage() {
             </div>
             <div>
               <Label>City (optional)</Label>
-              <input
+              <select
                 className="field w-full"
-                autoFocus
-                maxLength={120}
-                placeholder="Casablanca"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-              />
+              >
+                <option value="">(none)</option>
+                {(isCountry(country) ? CITIES_BY_COUNTRY[country] : []).map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex gap-2">
               <Button disabled={busy} onClick={saveLocation}>

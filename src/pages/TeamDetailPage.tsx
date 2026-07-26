@@ -32,6 +32,7 @@ import {
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
+import { CITIES_BY_COUNTRY, isCountry } from "../lib/cities";
 import { dateLabel, expiresLabel } from "../lib/format";
 import { COUNTRIES } from "../lib/reference";
 
@@ -124,15 +125,10 @@ export function TeamDetailPage() {
 
   const sportGameTypes = gameTypes.filter((g) => g.sport === team.sport);
   const currentGameType = gameTypes.find((g) => g.id === team.game_type_id) ?? null;
-  // Mirrors the backend's own gate (team_service.update_team) so a captain sees why the button
-  // is disabled instead of clicking it and getting a toast — the API stays the source of truth.
-  const canComplete =
-    currentGameType !== null && members.length >= currentGameType.players_per_side;
-  const completeBlockedReason = !currentGameType
-    ? "Pick a lineup type first"
-    : !canComplete
-      ? `${currentGameType.label} needs ${currentGameType.players_per_side} active members — team has ${members.length}`
-      : undefined;
+  // The captain can mark the team complete once a lineup type is set — there is no minimum-member
+  // gate (unfilled positions just show empty on the lineup). Mirrors team_service.update_team.
+  const canComplete = currentGameType !== null;
+  const completeBlockedReason = !currentGameType ? "Pick a lineup type first" : undefined;
 
   const act = (fn: () => Promise<unknown>, message: string) => run(fn, message).then(reload);
 
@@ -310,7 +306,10 @@ function AboutTeam({
             <select
               className="field w-full"
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setCity("");
+              }}
             >
               {COUNTRIES.map((c) => (
                 <option key={c} value={c}>
@@ -321,12 +320,18 @@ function AboutTeam({
           </div>
           <div className="flex-1">
             <Label>City</Label>
-            <input
+            <select
               className="field w-full"
-              placeholder="(none)"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-            />
+            >
+              <option value="">(none)</option>
+              {(isCountry(country) ? CITIES_BY_COUNTRY[country] : []).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="flex gap-2">
@@ -409,7 +414,7 @@ function JerseyNumberInput({
 function LineupSection({
   team,
   members,
-  manages,
+  isCaptain,
   sportGameTypes,
   currentGameType,
   userName,
@@ -417,7 +422,7 @@ function LineupSection({
 }: {
   team: Team;
   members: Membership[];
-  manages: boolean;
+  isCaptain: boolean;
   sportGameTypes: GameType[];
   currentGameType: GameType | null;
   userName: (id: string) => string;
@@ -427,7 +432,7 @@ function LineupSection({
 
   return (
     <div className="mb-6">
-      {manages && (
+      {isCaptain && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(picking || !currentGameType) &&
             sportGameTypes.map((g) => (
@@ -461,8 +466,8 @@ function LineupSection({
           )}
         </div>
       )}
-      {!currentGameType && !manages && (
-        <Empty>No lineup type set yet.</Empty>
+      {!currentGameType && !isCaptain && (
+        <Empty>No lineup type set yet — the captain sets it.</Empty>
       )}
       <LineupCard team={team} members={members} gameType={currentGameType} userName={userName} />
     </div>
@@ -493,7 +498,7 @@ function MembersTab({
       <LineupSection
         team={team}
         members={members}
-        manages={manages}
+        isCaptain={isCaptain}
         sportGameTypes={sportGameTypes}
         currentGameType={currentGameType}
         userName={userName}
