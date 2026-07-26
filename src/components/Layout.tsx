@@ -151,8 +151,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-20 border-b border-line bg-white">
         <div className="mx-auto flex h-[62px] max-w-[1100px] items-center gap-6 px-6">
           <NavLink to="/home" className="flex flex-none items-center gap-2.5 no-underline">
-            <div className="h-[30px] w-[30px] flex-none rounded-lg bg-brand" />
-            <span className="text-lg font-bold tracking-[-0.01em] text-ink">Kickoff</span>
+            <div className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] bg-brand font-display text-[18px] leading-none text-white">
+              K
+            </div>
+            <span className="font-display text-lg tracking-[0.01em] text-ink">Kickoff</span>
           </NavLink>
           <nav className="flex gap-0.5">
             {NAV.map((n) => (
