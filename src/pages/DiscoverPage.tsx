@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import L from "leaflet";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap } from "react-leaflet";
 
 import { api } from "../api/client";
 import {
@@ -7,11 +9,13 @@ import {
   type GuestApplication,
   type GuestSearch,
   type OpponentSearch,
+  type PlayerAvailability,
   type RosterApplication,
   type RosterSearch,
   type Sport,
   type Team,
 } from "../api/types";
+import { PlayerAvailabilityModal } from "../components/PlayerAvailabilityModal";
 import {
   Avatar,
   Button,
@@ -19,15 +23,54 @@ import {
   Empty,
   PageTitle,
   Pill,
+  RadiusChip,
   SPORT_LABEL,
   SectionLabel,
   TypeDot,
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
+import { CITIES_BY_COUNTRY, type Country } from "../lib/cities";
 import { dateLabel, expiresLabel } from "../lib/format";
-import { useUsers } from "../lib/useMyTeams";
-import type { PlayerAvailability } from "../api/types";
+import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
+import { COUNTRIES, DEFAULT_COUNTRY } from "../lib/profile";
+import { useMyTeams, useUsers } from "../lib/useMyTeams";
+
+/** Teardrop pin as a divIcon so no marker image assets are bundled. */
+const PLAYER_PIN = L.divIcon({
+  className: "",
+  html: '<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#147A49;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 22],
+});
+
+const DEFAULT_CENTER: [number, number] = [33.5731, -7.5898]; // Casablanca
+
+/**
+ * Frames the players map: fly to the chosen city when one is picked, otherwise fit all plotted
+ * players into view so every pin is visible at once (the "show all players in this country" case).
+ */
+function FrameMap({
+  cityCenter,
+  points,
+}: {
+  cityCenter: [number, number] | null;
+  points: [number, number][];
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (cityCenter) {
+      map.flyTo(cityCenter, 12);
+    } else if (points.length > 1) {
+      map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
+    } else if (points.length === 1) {
+      map.flyTo(points[0], 12);
+    }
+    // Re-frame when the selection or the set of plotted points changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityCenter?.[0], cityCenter?.[1], points.length]);
+  return null;
+}
 
 function Quadrant({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -50,10 +93,13 @@ function Row({ children }: { children: React.ReactNode }) {
 export function DiscoverPage() {
   const { user: acting } = useActingUser();
   const { run } = useToast();
-  const { userName } = useUsers();
+  const { users, userName } = useUsers();
+  const { teams: myTeams } = useMyTeams(acting);
 
   const [sport, setSport] = useState<Sport | "">("");
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
+  const [cityName, setCityName] = useState("");
+  const [selected, setSelected] = useState<PlayerAvailability | null>(null);
 
   const [rosterSearches, setRosterSearches] = useState<RosterSearch[]>([]);
   const [opponentSearches, setOpponentSearches] = useState<OpponentSearch[]>([]);
@@ -67,14 +113,19 @@ export function DiscoverPage() {
   const load = useCallback(async () => {
     const params = new URLSearchParams();
     if (sport) params.set("sport", sport);
-    if (city) params.set("city", city);
+    if (cityName) params.set("city", cityName);
     const q = params.toString() ? `?${params}` : "";
+    // Player availabilities also scope by country (the fixed country→city list), so they get an
+    // extra param the team/opponent/guest searches (city-only) don't.
+    const playerParams = new URLSearchParams(params);
+    playerParams.set("country", country);
+    const playerQ = `?${playerParams}`;
     await run(async () => {
       const [roster, opponent, guest, avail, teamsList] = await Promise.all([
         api.get<RosterSearch[]>(`/roster-searches${q}`),
         api.get<OpponentSearch[]>(`/opponent-searches${q}`),
         api.get<GuestSearch[]>(`/guest-searches${q}`),
-        api.get<PlayerAvailability[]>(`/player-availability${q}`),
+        api.get<PlayerAvailability[]>(`/player-availability${playerQ}`),
         api.get<Team[]>(`/teams`),
       ]);
       setRosterSearches(roster);
@@ -96,7 +147,7 @@ export function DiscoverPage() {
       setMyApps([]);
       setMyGuestApps([]);
     }
-  }, [sport, city, acting, run]);
+  }, [sport, cityName, country, acting, run]);
 
   useEffect(() => {
     void load();
@@ -105,6 +156,39 @@ export function DiscoverPage() {
   const teamName = (id: string) => teams.find((t) => t.id === id)?.name ?? id.slice(0, 8);
   const teamSport = (id: string) => teams.find((t) => t.id === id)?.sport;
 
+  // Only players with real coordinates can be plotted; the rest still list below the map.
+  const mappablePlayers = useMemo(
+    () => players.filter((p) => p.latitude != null && p.longitude != null),
+    [players],
+  );
+
+  const cityCenter = useMemo<[number, number] | null>(() => {
+    const city = cityName ? CITIES_BY_COUNTRY[country].find((c) => c.name === cityName) : undefined;
+    return city ? [city.lat, city.lng] : null;
+  }, [cityName, country]);
+
+  const playerPoints = useMemo<[number, number][]>(
+    () => mappablePlayers.map((a) => [a.latitude as number, a.longitude as number]),
+    [mappablePlayers],
+  );
+
+  const initialCenter = cityCenter ?? playerPoints[0] ?? DEFAULT_CENTER;
+
+  const selectedUser = useMemo(
+    () => (selected ? (users.find((u) => u.id === selected.user_id) ?? null) : null),
+    [selected, users],
+  );
+
+  // Teams the acting user captains/co-manages in the selected player's sport — who they can invite to.
+  const invitableTeams = useMemo(() => {
+    if (!selected) return [];
+    return myTeams.filter(
+      (t) => (t.role === "captain" || t.role === "admin") && t.team.sport === selected.sport,
+    );
+  }, [selected, myTeams]);
+
+  const canInvite = !!acting && !!selected && selected.user_id !== acting.id;
+
   return (
     <>
       <PageTitle
@@ -112,7 +196,7 @@ export function DiscoverPage() {
         subtitle="Find teams, opponents, guests, and players near you"
       />
 
-      <div className="mb-7 flex gap-2.5">
+      <div className="mb-7 flex flex-wrap gap-2.5">
         <select
           className="field font-semibold"
           value={sport}
@@ -125,13 +209,28 @@ export function DiscoverPage() {
             </option>
           ))}
         </select>
-        <input
-          className="field w-[180px]"
-          placeholder="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-        <Button onClick={() => void load()}>Search</Button>
+        <select
+          className="field"
+          value={country}
+          onChange={(e) => {
+            setCountry(e.target.value as Country);
+            setCityName("");
+          }}
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select className="field" value={cityName} onChange={(e) => setCityName(e.target.value)}>
+          <option value="">All cities</option>
+          {CITIES_BY_COUNTRY[country].map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="mb-9 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -247,31 +346,80 @@ export function DiscoverPage() {
           ))}
         </Quadrant>
 
-        <Quadrant title="Available players">
-          {players.length === 0 && <Empty>None found.</Empty>}
-          {players.map((a) => (
-            <Row key={a.id}>
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar name={userName(a.user_id)} />
-                <div className="min-w-0">
-                  <div className="text-[13.5px] font-semibold">{userName(a.user_id)}</div>
-                  <div className="mt-0.5 text-xs text-muted">
+      </div>
+
+      <div className="mb-3 flex items-center gap-2">
+        <div className="h-[9px] w-[9px] rounded-[2px] bg-brand" />
+        <div className="text-[13px] font-bold">
+          Available players{cityName ? ` in ${cityName}` : ` in ${country}`}
+        </div>
+        <span className="text-xs text-muted">· click a pin or a card to view and invite</span>
+      </div>
+
+      <div className="mb-9 flex flex-col gap-4 lg:flex-row">
+        <div className="relative flex-1 overflow-hidden rounded-card border border-line">
+          <MapContainer
+            center={initialCenter}
+            zoom={12}
+            scrollWheelZoom={false}
+            zoomControl={false}
+            style={{ height: 360, width: "100%" }}
+          >
+            <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+            <ZoomControl position="bottomleft" />
+            <FrameMap cityCenter={cityCenter} points={playerPoints} />
+            {mappablePlayers.map((a) => (
+              <Marker
+                key={a.id}
+                position={[a.latitude as number, a.longitude as number]}
+                icon={PLAYER_PIN}
+                eventHandlers={{ click: () => setSelected(a) }}
+              />
+            ))}
+          </MapContainer>
+          {mappablePlayers.length === 0 && (
+            <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+              <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-muted shadow-float">
+                No players plotted here yet
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex w-full flex-col gap-2 lg:w-80 lg:shrink-0">
+          {players.length === 0 ? (
+            <Empty>No players available here.</Empty>
+          ) : (
+            players.map((a) => (
+              <Card
+                key={a.id}
+                className="flex cursor-pointer items-center gap-2.5 px-4 py-3 transition hover:border-brand"
+                onClick={() => setSelected(a)}
+              >
+                <Avatar name={userName(a.user_id)} size={28} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-semibold">{userName(a.user_id)}</div>
+                  <div className="mt-0.5 text-[11px] text-muted">
                     {SPORT_LABEL[a.sport]} · {a.city}
                   </div>
                 </div>
-              </div>
-              <Pill value={a.status} />
-            </Row>
-          ))}
-          {players.length > 0 && (
-            <p className="text-[11.5px] leading-snug text-faint">
-              The design shows an “Invite” action here, but the API has no route to invite against a
-              broadcast — guest invites attach to an already-confirmed match. Invite these players
-              from the match page instead.
-            </p>
+                <RadiusChip km={a.radius_km} />
+              </Card>
+            ))
           )}
-        </Quadrant>
+        </div>
       </div>
+
+      {selected && (
+        <PlayerAvailabilityModal
+          availability={selected}
+          user={selectedUser}
+          canInvite={canInvite}
+          invitableTeams={invitableTeams}
+          onInvited={load}
+          onClose={() => setSelected(null)}
+        />
+      )}
 
       <SectionLabel>My applications &amp; invites</SectionLabel>
       {!acting ? (

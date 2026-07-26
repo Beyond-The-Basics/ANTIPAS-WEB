@@ -125,6 +125,16 @@ export function TypeDot() {
   return <div className="h-[9px] w-[9px] flex-none rounded-[3px] bg-brand" />;
 }
 
+/** Compact "discoverable within Xkm" badge for a PlayerAvailability card. */
+export function RadiusChip({ km }: { km: number | null }) {
+  if (km == null) return null;
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-brand-tint px-2.5 py-1 text-[11px] font-bold text-brand-deep">
+      📍 {km} km
+    </span>
+  );
+}
+
 // --- surfaces -----------------------------------------------------------------
 
 export function Card({

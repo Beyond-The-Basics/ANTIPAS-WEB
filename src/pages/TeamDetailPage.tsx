@@ -15,7 +15,7 @@ import type {
   User,
 } from "../api/types";
 import { LineupCard } from "../components/LineupCard";
-import { LocationPicker } from "../components/LocationPicker";
+import { NegotiationModal } from "../components/NegotiationModal";
 import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
 import {
   Avatar,
@@ -32,6 +32,7 @@ import {
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
+import { CITIES_BY_COUNTRY, type Country, findCity, isCountry } from "../lib/cities";
 import { dateLabel, expiresLabel } from "../lib/format";
 import { COUNTRIES } from "../lib/reference";
 
@@ -66,6 +67,7 @@ export function TeamDetailPage() {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
+  const [negotiation, setNegotiation] = useState<OpponentApplication | null>(null);
 
   const userName = useCallback(
     (id: string) => users.find((u) => u.id === id)?.name ?? id.slice(0, 8),
@@ -121,18 +123,18 @@ export function TeamDetailPage() {
     members.find((m) => m.user_id === acting?.id)?.role ?? null;
   const isCaptain = myRole === "captain";
   const manages = isCaptain || myRole === "admin";
+  // Someone browsing a team they might join (e.g. from the recruiting map) only sees the roster
+  // and lineup — the recruiting / opponent / matches tabs are for the team's own members.
+  const isMember = myRole !== null;
+  const visibleTabs = isMember ? TABS : TABS.filter((t) => t.id === "members");
+  const activeTab: Tab = isMember ? tab : "members";
 
   const sportGameTypes = gameTypes.filter((g) => g.sport === team.sport);
   const currentGameType = gameTypes.find((g) => g.id === team.game_type_id) ?? null;
-  // Mirrors the backend's own gate (team_service.update_team) so a captain sees why the button
-  // is disabled instead of clicking it and getting a toast — the API stays the source of truth.
-  const canComplete =
-    currentGameType !== null && members.length >= currentGameType.players_per_side;
-  const completeBlockedReason = !currentGameType
-    ? "Pick a lineup type first"
-    : !canComplete
-      ? `${currentGameType.label} needs ${currentGameType.players_per_side} active members — team has ${members.length}`
-      : undefined;
+  // The captain can mark the team complete once a lineup type is set — there is no minimum-member
+  // gate (unfilled positions just show empty on the lineup). Mirrors team_service.update_team.
+  const canComplete = currentGameType !== null;
+  const completeBlockedReason = !currentGameType ? "Pick a lineup type first" : undefined;
 
   const act = (fn: () => Promise<unknown>, message: string) => run(fn, message).then(reload);
 
@@ -227,9 +229,9 @@ export function TeamDetailPage() {
 
       <AboutTeam team={team} manages={manages} act={act} />
 
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+      <Tabs tabs={visibleTabs} active={activeTab} onChange={setTab} />
 
-      {tab === "members" && (
+      {activeTab === "members" && (
         <MembersTab
           team={team}
           members={members}
@@ -242,7 +244,7 @@ export function TeamDetailPage() {
         />
       )}
 
-      {tab === "recruiting" && (
+      {activeTab === "recruiting" && (
         <RecruitingTab
           team={team}
           members={members}
@@ -255,7 +257,7 @@ export function TeamDetailPage() {
         />
       )}
 
-      {tab === "opponent" && (
+      {activeTab === "opponent" && (
         <OpponentTab
           team={team}
           currentGameType={currentGameType}
@@ -264,11 +266,27 @@ export function TeamDetailPage() {
           teamName={teamName}
           manages={manages}
           act={act}
+          openNegotiation={setNegotiation}
         />
       )}
 
-      {tab === "matches" && (
+      {activeTab === "matches" && (
         <MatchesTab teamId={teamId} matches={matches} teamName={teamName} />
+      )}
+
+      {negotiation && (
+        <NegotiationModal
+          application={negotiation}
+          myTeamId={team.id}
+          teamName={teamName}
+          userName={userName}
+          onClose={() => setNegotiation(null)}
+          onAgreed={(match) => {
+            setNegotiation(null);
+            void reload();
+            navigate(`/matches/${match.id}`);
+          }}
+        />
       )}
     </>
   );
@@ -310,7 +328,10 @@ function AboutTeam({
             <select
               className="field w-full"
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                setCity("");
+              }}
             >
               {COUNTRIES.map((c) => (
                 <option key={c} value={c}>
@@ -321,12 +342,18 @@ function AboutTeam({
           </div>
           <div className="flex-1">
             <Label>City</Label>
-            <input
+            <select
               className="field w-full"
-              placeholder="(none)"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-            />
+            >
+              <option value="">(none)</option>
+              {(isCountry(country) ? CITIES_BY_COUNTRY[country] : []).map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="flex gap-2">
@@ -409,7 +436,7 @@ function JerseyNumberInput({
 function LineupSection({
   team,
   members,
-  manages,
+  isCaptain,
   sportGameTypes,
   currentGameType,
   userName,
@@ -417,7 +444,7 @@ function LineupSection({
 }: {
   team: Team;
   members: Membership[];
-  manages: boolean;
+  isCaptain: boolean;
   sportGameTypes: GameType[];
   currentGameType: GameType | null;
   userName: (id: string) => string;
@@ -427,7 +454,7 @@ function LineupSection({
 
   return (
     <div className="mb-6">
-      {manages && (
+      {isCaptain && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(picking || !currentGameType) &&
             sportGameTypes.map((g) => (
@@ -461,10 +488,19 @@ function LineupSection({
           )}
         </div>
       )}
-      {!currentGameType && !manages && (
-        <Empty>No lineup type set yet.</Empty>
+      {!currentGameType && !isCaptain && (
+        <Empty>No lineup type set yet — the captain sets it.</Empty>
       )}
-      <LineupCard team={team} members={members} gameType={currentGameType} userName={userName} />
+      <LineupCard
+        team={team}
+        members={members}
+        gameType={currentGameType}
+        userName={userName}
+        editable={isCaptain}
+        onReorder={(assignments) =>
+          act(() => api.put(`/teams/${team.id}/lineup`, { assignments }), "Lineup updated")
+        }
+      />
     </div>
   );
 }
@@ -493,7 +529,7 @@ function MembersTab({
       <LineupSection
         team={team}
         members={members}
-        manages={manages}
+        isCaptain={isCaptain}
         sportGameTypes={sportGameTypes}
         currentGameType={currentGameType}
         userName={userName}
@@ -601,14 +637,19 @@ function RecruitingTab({
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   reload: () => Promise<void>;
 }) {
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState<Country>(
+    isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
+  );
+  const [city, setCity] = useState(
+    isCountry(team.country) && team.city && findCity(team.country, team.city) ? team.city : "",
+  );
   const [publishing, setPublishing] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   return (
     <div>
       {searches.length === 0 ? (
-        <Card className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
+        <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 px-[18px] py-4">
           <div>
             <div className="text-sm font-semibold">No open roster search</div>
             <div className="mt-0.5 text-[12.5px] text-muted">
@@ -617,23 +658,41 @@ function RecruitingTab({
           </div>
           {manages &&
             (publishing ? (
-              <div className="flex flex-none items-center gap-2">
-                <input
-                  className="field w-[160px]"
-                  autoFocus
-                  placeholder="City"
+              <div className="flex flex-none flex-wrap items-center gap-2">
+                <select
+                  className="field !py-2 !text-[12.5px]"
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value as Country);
+                    setCity("");
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="field !py-2 !text-[12.5px]"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                />
+                >
+                  <option value="">Select a city…</option>
+                  {CITIES_BY_COUNTRY[country].map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   size="sm"
                   disabled={!city}
                   onClick={() =>
                     act(
-                      () => api.post(`/teams/${team.id}/roster-searches`, { city }),
+                      () => api.post(`/teams/${team.id}/roster-searches`, { city, country }),
                       "Roster search published",
                     ).then(() => {
-                      setCity("");
                       setPublishing(false);
                     })
                   }
@@ -763,6 +822,7 @@ function OpponentTab({
   teamName,
   manages,
   act,
+  openNegotiation,
 }: {
   team: Team;
   currentGameType: GameType | null;
@@ -771,9 +831,15 @@ function OpponentTab({
   teamName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  openNegotiation: (app: OpponentApplication) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState<Country>(
+    isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
+  );
+  const [city, setCity] = useState(
+    isCountry(team.country) && team.city && findCity(team.country, team.city) ? team.city : "",
+  );
   const [pitch, setPitch] = useState("");
   const [date, setDate] = useState("");
 
@@ -787,12 +853,18 @@ function OpponentTab({
   }
 
   const publish = async () => {
-    // No game_type_id in the body — the search inherits the team's own lineup type.
+    // No game_type_id in the body — the search inherits the team's own lineup type. The date/time
+    // and pitch are the starting proposal; they get finalised in the negotiation chat.
     await act(
-      () => api.post(`/teams/${team.id}/opponent-searches`, { city, pitch, date }),
+      () =>
+        api.post(`/teams/${team.id}/opponent-searches`, {
+          city,
+          country,
+          pitch,
+          date: new Date(date).toISOString(),
+        }),
       "Opponent search published",
     ).then(() => {
-      setCity("");
       setPitch("");
       setDate("");
       setOpen(false);
@@ -807,7 +879,8 @@ function OpponentTab({
             <div>
               <div className="text-sm font-semibold">No open opponent search</div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                Terms are fixed at publish — responding teams can only accept or be rejected.
+                These are your opening terms — the responding team can chat to renegotiate the
+                date, time and pitch before you both agree.
                 {currentGameType && <> Format: <strong className="text-ink">{currentGameType.label}</strong>, from your team's lineup.</>}
               </div>
             </div>
@@ -818,46 +891,63 @@ function OpponentTab({
             )}
           </div>
           {open && (
-            <div className="mt-4 border-t border-line-2 pt-4">
-              <div className="mb-3">
-                <Label>Location</Label>
-                <LocationPicker onCityResolved={setCity} />
+            <div className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line-2 pt-4">
+              <div>
+                <Label>Country</Label>
+                <select
+                  className="field !text-[13px]"
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value as Country);
+                    setCity("");
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="flex flex-wrap items-end gap-2.5">
-                <div>
-                  <Label>City</Label>
-                  <input
-                    className="field w-[150px]"
-                    placeholder="Pick on the map, or type"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Pitch</Label>
-                  <input
-                    className="field w-[150px]"
-                    placeholder="Venue name"
-                    value={pitch}
-                    onChange={(e) => setPitch(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Date</Label>
-                  <input
-                    type="date"
-                    className="field"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-                <Button disabled={!city || !pitch || !date} onClick={publish}>
-                  Publish
-                </Button>
-                <Button variant="ghost" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
+              <div>
+                <Label>City</Label>
+                <select
+                  className="field !text-[13px]"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {CITIES_BY_COUNTRY[country].map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+              <div>
+                <Label>Pitch</Label>
+                <input
+                  className="field w-[150px]"
+                  placeholder="Venue name"
+                  value={pitch}
+                  onChange={(e) => setPitch(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Date &amp; time</Label>
+                <input
+                  type="datetime-local"
+                  className="field"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+              <Button disabled={!city || !pitch || !date} onClick={publish}>
+                Publish
+              </Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
             </div>
           )}
         </Card>
@@ -891,7 +981,12 @@ function OpponentTab({
       )}
 
       <SectionLabel>Responding teams</SectionLabel>
-      <ResponderList searches={searches} teamName={teamName} manages={manages} act={act} />
+      <ResponderList
+        searches={searches}
+        teamName={teamName}
+        manages={manages}
+        openNegotiation={openNegotiation}
+      />
 
       {apps.length > 0 && (
         <div className="mt-8">
@@ -902,7 +997,12 @@ function OpponentTab({
                 <div className="flex-1 text-[13.5px] font-semibold">
                   Challenge <ShortId id={a.opponent_search_id} />
                 </div>
-                <Pill value={a.status} />
+                <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
+                {a.status === "accepted" && (
+                  <Button size="sm" onClick={() => openNegotiation(a)}>
+                    Open chat
+                  </Button>
+                )}
                 {manages && a.status === "pending" && (
                   <Button
                     size="sm"
@@ -928,13 +1028,14 @@ function ResponderList({
   searches,
   teamName,
   manages,
-  act,
+  openNegotiation,
 }: {
   searches: OpponentSearch[];
   teamName: (id: string) => string;
   manages: boolean;
-  act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  openNegotiation: (app: OpponentApplication) => void;
 }) {
+  const { run } = useToast();
   const [bySearch, setBySearch] = useState<Record<string, OpponentApplication[]>>({});
 
   const load = useCallback(async () => {
@@ -963,18 +1064,26 @@ function ResponderList({
           <div className="flex-1 text-[13.5px] font-semibold">
             {teamName(a.responding_team_id)}
           </div>
-          <Pill value={a.status} />
+          <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
           {manages && a.status === "pending" && (
             <Button
               size="sm"
               onClick={() =>
-                act(
-                  () => api.post(`/opponent-applications/${a.id}/confirm`),
-                  "Confirmed — match created",
-                ).then(load)
+                run(async () => {
+                  const accepted = await api.post<OpponentApplication>(
+                    `/opponent-applications/${a.id}/accept`,
+                  );
+                  await load();
+                  openNegotiation(accepted);
+                }, "Challenge accepted — negotiate the details")
               }
             >
-              Confirm → Match
+              Accept challenge
+            </Button>
+          )}
+          {a.status === "accepted" && (
+            <Button size="sm" onClick={() => openNegotiation(a)}>
+              Open chat
             </Button>
           )}
         </Card>
