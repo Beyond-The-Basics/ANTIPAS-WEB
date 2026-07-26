@@ -15,6 +15,8 @@ export default defineConfig({
       "/api": {
         target: process.env.VITE_API_TARGET ?? "http://localhost:8000",
         changeOrigin: true,
+        // Also proxy the negotiation chat WebSocket (/api/v1/ws/negotiations/...).
+        ws: true,
       },
     },
   },
