@@ -62,7 +62,7 @@ function FrameMap({
     if (cityCenter) {
       map.flyTo(cityCenter, 12);
     } else if (points.length > 1) {
-      map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
+      map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
     } else if (points.length === 1) {
       map.flyTo(points[0], 12);
     }
