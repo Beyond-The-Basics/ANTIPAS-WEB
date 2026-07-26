@@ -11,6 +11,7 @@ import { api } from "../api/client";
 import type { PlayerAvailability, User } from "../api/types";
 import { useToast } from "../context/Toast";
 import { expiresLabel } from "../lib/format";
+import { TILE_URL } from "../lib/map";
 import type { MyTeam } from "../lib/useMyTeams";
 import { Avatar, Button, Pill, SPORT_LABEL, SectionLabel } from "./ui";
 
@@ -92,7 +93,7 @@ export function PlayerAvailabilityModal({
               attributionControl={false}
               style={{ height: "100%", width: "100%" }}
             >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+              <TileLayer url={TILE_URL} />
               {availability.radius_km != null && (
                 <Circle
                   center={center}

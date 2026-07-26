@@ -10,6 +10,8 @@ import L from "leaflet";
 import { useCallback, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, ZoomControl, useMapEvents } from "react-leaflet";
 
+import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
+
 const PIN = L.divIcon({
   className: "",
   html: '<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:#147A49;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
@@ -77,10 +79,7 @@ export function LocationPicker({
         zoomControl={false}
         style={{ height: 220, width: "100%" }}
       >
-        <TileLayer
-          attribution="&copy; OpenStreetMap &copy; CARTO"
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
         <ZoomControl position="bottomleft" />
         <ClickToPlace onMove={moveTo} />
         <Marker

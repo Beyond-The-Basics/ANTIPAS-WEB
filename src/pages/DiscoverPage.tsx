@@ -32,6 +32,7 @@ import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
 import { CITIES_BY_COUNTRY, type Country } from "../lib/cities";
 import { dateLabel, expiresLabel } from "../lib/format";
+import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
 import { COUNTRIES, DEFAULT_COUNTRY } from "../lib/profile";
 import { useMyTeams, useUsers } from "../lib/useMyTeams";
 
@@ -364,10 +365,7 @@ export function DiscoverPage() {
             zoomControl={false}
             style={{ height: 360, width: "100%" }}
           >
-            <TileLayer
-              attribution="&copy; OpenStreetMap &copy; CARTO"
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            />
+            <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
             <ZoomControl position="bottomleft" />
             <FrameMap cityCenter={cityCenter} points={playerPoints} />
             {mappablePlayers.map((a) => (
