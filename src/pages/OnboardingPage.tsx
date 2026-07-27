@@ -9,12 +9,11 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
-import type { Sport } from "../api/types";
+import { SPORTS, type Gender, type Sport } from "../api/types";
 import { RatingDots, SPORT_LABEL, SportDot } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
+import { CITIES_BY_COUNTRY, type Country, findCity, isCountry } from "../lib/cities";
 import { ATHLETIC_TRAITS, COUNTRIES, DEFAULT_COUNTRY, type AthleticTraitKey } from "../lib/profile";
-
-const SPORTS: Sport[] = ["soccer", "tennis", "paddle"];
 
 const STEPS = ["About you", "Location", "Sports", "Athletic profile"] as const;
 
@@ -159,8 +158,13 @@ export function OnboardingPage() {
 
   const [nickname, setNickname] = useState(user?.nickname ?? "");
   const [age, setAge] = useState(user?.age?.toString() ?? "");
-  const [country, setCountry] = useState(user?.country ?? DEFAULT_COUNTRY);
-  const [city, setCity] = useState(user?.city ?? "");
+  const [gender, setGender] = useState<Gender | "">(user?.gender ?? "");
+  const [country, setCountry] = useState<Country>(
+    isCountry(user?.country) ? user.country : DEFAULT_COUNTRY,
+  );
+  const [city, setCity] = useState(
+    isCountry(user?.country) && user?.city && findCity(user.country, user.city) ? user.city : "",
+  );
   const [sports, setSports] = useState<Sport[]>(user?.favorite_sports ?? []);
   const [ratings, setRatings] = useState<Record<AthleticTraitKey, number | null>>({
     speed_rating: user?.speed_rating ?? null,
@@ -240,11 +244,29 @@ export function OnboardingPage() {
                 onChange={(e) => setAge(e.target.value)}
               />
             </Field>
+            <Field label="Gender">
+              <div className="flex gap-2.5">
+                {(["male", "female"] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGender((prev) => (prev === g ? "" : g))}
+                    className={`flex-1 rounded-cta border px-4 py-3 text-sm font-bold capitalize transition-colors ${
+                      gender === g
+                        ? "border-brand bg-landing-tint text-brand-deep"
+                        : "border-landing-line-strong bg-white text-ink hover:bg-landing-hover-soft"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </Field>
           </div>
           <StepActions
             busy={busy}
             disabled={!nickname.trim() || !age}
-            onNext={() => next({ nickname: nickname.trim(), age: Number(age) })}
+            onNext={() => next({ nickname: nickname.trim(), age: Number(age), gender: gender || null })}
           />
         </>
       )}
@@ -257,7 +279,10 @@ export function OnboardingPage() {
               <select
                 className={inputClass}
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
+                onChange={(e) => {
+                  setCountry(e.target.value as Country);
+                  setCity("");
+                }}
               >
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>
@@ -267,14 +292,19 @@ export function OnboardingPage() {
               </select>
             </Field>
             <Field label="City">
-              <input
+              <select
                 className={inputClass}
                 autoFocus
-                maxLength={120}
-                placeholder="Casablanca"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-              />
+              >
+                <option value="">Select a city…</option>
+                {CITIES_BY_COUNTRY[country].map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
           <StepActions

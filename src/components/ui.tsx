@@ -100,11 +100,17 @@ export function AvatarStack({ names, total }: { names: string[]; total: number }
   );
 }
 
-const SPORT_LETTER: Record<Sport, string> = { soccer: "S", tennis: "T", paddle: "P" };
+const SPORT_LETTER: Record<Sport, string> = {
+  soccer: "S",
+  tennis: "T",
+  paddle: "P",
+  basketball: "B",
+};
 export const SPORT_LABEL: Record<Sport, string> = {
   soccer: "Soccer",
   tennis: "Tennis",
   paddle: "Paddle",
+  basketball: "Basketball",
 };
 
 /** Prototype `dot()` — a rounded green square carrying the sport's initial. */
