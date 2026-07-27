@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "../api/client";
-import type { Match, Sport, User } from "../api/types";
+import { SPORTS, type Gender, type Match, type Sport, type User } from "../api/types";
 import {
   Button,
   Card,
@@ -17,8 +17,6 @@ import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
 import { ATHLETIC_TRAITS, COUNTRIES, type AthleticTraitKey } from "../lib/profile";
 import { useMyTeams } from "../lib/useMyTeams";
-
-const ALL_SPORTS: Sport[] = ["soccer", "tennis", "paddle"];
 
 function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
@@ -38,6 +36,7 @@ export function ProfilePage() {
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [favoriteSports, setFavoriteSports] = useState<Sport[]>([]);
@@ -54,6 +53,7 @@ export function ProfilePage() {
     setEmail(acting?.email ?? "");
     setNickname(acting?.nickname ?? "");
     setAge(acting?.age?.toString() ?? "");
+    setGender(acting?.gender ?? "");
     setCountry(acting?.country ?? "");
     setCity(acting?.city ?? "");
     setFavoriteSports(acting?.favorite_sports ?? []);
@@ -198,6 +198,18 @@ export function ProfilePage() {
                   />
                 </div>
                 <div>
+                  <Label>Gender</Label>
+                  <select
+                    className="field w-full"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as Gender | "")}
+                  >
+                    <option value="">(none)</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div>
                   <Label>Country</Label>
                   <select
                     className="field w-full"
@@ -224,7 +236,7 @@ export function ProfilePage() {
 
               <Label>Favorite sports</Label>
               <div className="mb-5 mt-1.5 flex flex-wrap gap-2">
-                {ALL_SPORTS.map((s) => {
+                {SPORTS.map((s) => {
                   const selected = favoriteSports.includes(s);
                   return (
                     <button
@@ -267,6 +279,7 @@ export function ProfilePage() {
                         email: email || null,
                         nickname: nickname || null,
                         age: age ? Number(age) : null,
+                        gender: gender || null,
                         country,
                         city: city || null,
                         favorite_sports: favoriteSports,

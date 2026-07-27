@@ -1,4 +1,5 @@
-export type Sport = "soccer" | "tennis" | "paddle";
+export type Sport = "soccer" | "tennis" | "paddle" | "basketball";
+export type Gender = "male" | "female";
 export type TeamRole = "captain" | "admin" | "member";
 export type ListingStatus = "open" | "closed" | "confirmed" | "withdrawn" | "expired";
 export type ApplicationStatus =
@@ -10,7 +11,7 @@ export type ApplicationStatus =
 export type ApplicationDirection = "player_applied" | "team_invited";
 export type MatchStatus = "confirmed" | "cancelled_by_a" | "cancelled_by_b" | "played";
 
-export const SPORTS: Sport[] = ["soccer", "tennis", "paddle"];
+export const SPORTS: Sport[] = ["soccer", "tennis", "paddle", "basketball"];
 
 export interface User {
   id: string;
@@ -24,6 +25,7 @@ export interface User {
   // Onboarding profile — filled in by the post-signup step wizard, not at signup itself.
   nickname: string | null;
   age: number | null;
+  gender: Gender | null;
   country: string;
   city: string | null;
   favorite_sports: Sport[];
