@@ -124,7 +124,9 @@ export interface OpponentApplication {
   status: ApplicationStatus;
   // Live negotiation proposal, present once the challenge is accepted.
   proposed_date: string | null;
+  proposed_end_date: string | null;
   proposed_pitch: string | null;
+  proposed_pitch_address: string | null;
   proposed_by_team_id: string | null;
   created_at: string;
 }
@@ -134,6 +136,19 @@ export interface NegotiationMessage {
   opponent_application_id: string;
   sender_user_id: string;
   body: string;
+  created_at: string;
+}
+
+// One immutable entry in a negotiation's offer history (the seeded initial terms, plus every
+// subsequent counter). The application's proposed_* fields only hold the *current* terms.
+export interface NegotiationProposal {
+  id: string;
+  opponent_application_id: string;
+  proposed_by_team_id: string;
+  date: string;
+  end_date: string | null;
+  pitch: string;
+  pitch_address: string | null;
   created_at: string;
 }
 
