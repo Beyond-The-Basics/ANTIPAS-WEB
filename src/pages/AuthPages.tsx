@@ -29,9 +29,7 @@ function AuthShell({
       <header className="border-b border-landing-line">
         <div className="mx-auto flex h-[70px] w-full max-w-[1180px] items-center px-8">
           <Link to="/" className="flex flex-none items-center gap-[11px] no-underline">
-            <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-brand text-[17px] font-extrabold text-white">
-              K
-            </div>
+            <img src="/logo-icon.png" alt="" className="h-[34px] w-[34px]" />
             <div className="text-xl font-extrabold tracking-[-0.02em] text-ink">Kickoff</div>
           </Link>
         </div>
@@ -168,11 +166,16 @@ export function SignupPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -235,6 +238,15 @@ export function SignupPage() {
           hint="At least 8 characters."
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+        />
+        <Field
+          label="Confirm password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
         <SubmitButton busy={busy}>Create account</SubmitButton>
       </form>

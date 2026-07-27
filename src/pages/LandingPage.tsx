@@ -141,13 +141,11 @@ const FOOTER_COLS = [
 const CONTAINER = "mx-auto w-full max-w-[1180px] px-8";
 
 function Wordmark({ size = "lg" }: { size?: "lg" | "sm" }) {
-  const chip = size === "lg" ? "h-[34px] w-[34px] rounded-[9px] text-[17px]" : "h-[30px] w-[30px] rounded-lg text-[15px]";
+  const chip = size === "lg" ? "h-[34px] w-[34px]" : "h-[30px] w-[30px]";
   const word = size === "lg" ? "text-xl" : "text-lg";
   return (
     <div className="flex flex-none items-center gap-[11px]">
-      <div className={`${chip} flex items-center justify-center bg-brand font-extrabold text-white`}>
-        K
-      </div>
+      <img src="/logo-icon.png" alt="" className={chip} />
       <div className={`${word} font-extrabold tracking-[-0.02em]`}>Kickoff</div>
     </div>
   );
