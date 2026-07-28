@@ -363,7 +363,6 @@
   "profile": {
     "title": "Profil",
     "nobodySelected": "Personne sélectionné — choisissez un utilisateur via la puce en haut à droite",
-    "orCreateBelow": ", ou créez-en un ci-dessous",
     "verified": "✓ Vérifié",
     "unverified": "Non vérifié",
     "onKickoffSince": "sur Kickoff depuis {{year}}",
@@ -384,6 +383,7 @@
     "city": "Ville",
     "favoriteSports": "Sports favoris",
     "athleticProfile": "Profil athlétique",
+    "setTraitTo": "Régler {{trait}} sur {{level}}",
     "saveChanges": "Enregistrer les modifications",
     "profileUpdated": "Profil mis à jour",
     "phoneReadOnlyNote": "Le téléphone est défini à l'inscription et est l'identité vérifiée par Firebase, donc il est en lecture seule ici.",
@@ -392,15 +392,7 @@
     "reputationNote": "Le design montre une répartition des notes entre ponctualité, esprit sportif et communication. Rien ne l'alimente encore — il n'y a pas de champs de note, d'avis ou d'avertissement dans l'API — donc ceux-ci restent vides plutôt que remplis de chiffres fictifs.",
     "punctuality": "Ponctualité",
     "sportsmanship": "Esprit sportif",
-    "communication": "Communication",
-    "addUser": "Ajouter un utilisateur",
-    "createUser": "+ Créer un utilisateur",
-    "phoneUnique": "Téléphone (unique)",
-    "emailOptional": "E-mail (facultatif)",
-    "create": "Créer",
-    "cancel": "Annuler",
-    "userCreated": "Utilisateur créé",
-    "createUserNote": "Le nouvel utilisateur devient celui que vous représentez. Le téléphone reste non vérifié tant que Firebase n'est pas configuré."
+    "communication": "Communication"
   },
   "negotiation": {
     "matchChallenge": "Défi de match",

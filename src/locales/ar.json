@@ -363,7 +363,6 @@
   "profile": {
     "title": "البروفيل",
     "nobodySelected": "ماحدش مختار — اختار مستخدم من الشيپ لي فوق على اليمين",
-    "orCreateBelow": "، أو دير واحد تحت",
     "verified": "✓ مؤكد",
     "unverified": "ماشي مؤكد",
     "onKickoffSince": "ف Kickoff من {{year}}",
@@ -384,6 +383,7 @@
     "city": "المدينة",
     "favoriteSports": "الرياضات المفضلة",
     "athleticProfile": "الملف الرياضي",
+    "setTraitTo": "دير {{trait}} ف {{level}}",
     "saveChanges": "حفظ التغييرات",
     "profileUpdated": "تحدث البروفيل",
     "phoneReadOnlyNote": "الهاتف كايتعين فالتسجيل وهو الهوية المؤكدة ب Firebase، فهو غير قابل للتعديل هنا.",
@@ -392,15 +392,7 @@
     "reputationNote": "التصميم كيبين تقسيم التقييم بين الدقة، الروح الرياضية، والتواصل. حتى واحد فهاد الحقول مازال ماكاين — ماكاين حتى حقل تقييم، رأي، أو إنذار فالـ API — فهادو خاويين بدل ما نعمروهم بأرقام وهمية.",
     "punctuality": "الدقة",
     "sportsmanship": "الروح الرياضية",
-    "communication": "التواصل",
-    "addUser": "زيد مستخدم",
-    "createUser": "+ دير مستخدم",
-    "phoneUnique": "الهاتف (وحيد)",
-    "emailOptional": "الإيميل (اختياري)",
-    "create": "دير",
-    "cancel": "إلغاء",
-    "userCreated": "تدار المستخدم",
-    "createUserNote": "المستخدم الجديد غادي يولي هو لي كتدخل بيه. الهاتف كايبقى ماشي مؤكد حتى يتصاوب Firebase."
+    "communication": "التواصل"
   },
   "negotiation": {
     "matchChallenge": "تحدي الماتش",

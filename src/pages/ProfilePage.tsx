@@ -2,16 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
-import { SPORTS, type Gender, type Match, type Sport, type User } from "../api/types";
+import { SPORTS, type Gender, type Match, type Sport } from "../api/types";
 import {
   Button,
   Card,
-  Empty,
   Label,
-  RatingDots,
+  RadarChart,
+  SPORT_EMOJI,
   SPORT_LABEL,
   SectionLabel,
-  SportDot,
   initials,
 } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
@@ -91,11 +90,7 @@ export function ProfilePage() {
     return (
       <>
         <h1 className="mb-1 text-[26px] font-bold">{t("profile.title")}</h1>
-        <p className="mb-7 text-sm text-muted">
-          {t("profile.nobodySelected")}
-          {import.meta.env.DEV && t("profile.orCreateBelow")}.
-        </p>
-        {import.meta.env.DEV && <CreateUser />}
+        <p className="mb-7 text-sm text-muted">{t("profile.nobodySelected")}.</p>
       </>
     );
   }
@@ -201,15 +196,25 @@ export function ProfilePage() {
                 </div>
                 <div>
                   <Label>{t("profile.gender")}</Label>
-                  <select
-                    className="field w-full"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value as Gender | "")}
-                  >
-                    <option value="">{t("common.none")}</option>
-                    <option value="male">{t("gender.male")}</option>
-                    <option value="female">{t("gender.female")}</option>
-                  </select>
+                  {/* Two toggles rather than a select, matching onboarding step 0 — clicking the
+                      active one clears it, which is how "no gender set" is expressed now that
+                      there's no "(none)" option to pick. */}
+                  <div className="flex gap-2">
+                    {(["male", "female"] as const).map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGender((prev) => (prev === g ? "" : g))}
+                        className={`flex-1 rounded-field border px-3 py-2.5 text-[12.5px] font-semibold transition-colors ${
+                          gender === g
+                            ? "border-brand bg-brand-tint text-brand-deep"
+                            : "border-line bg-white text-muted hover:bg-canvas"
+                        }`}
+                      >
+                        {t(`gender.${g}`)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label>{t("profile.country")}</Label>
@@ -251,7 +256,9 @@ export function ProfilePage() {
                           : "border-line bg-white text-muted hover:bg-canvas"
                       }`}
                     >
-                      <SportDot sport={s} size={16} />
+                      <span aria-hidden className="text-[15px] leading-none">
+                        {SPORT_EMOJI[s]}
+                      </span>
                       {SPORT_LABEL[s]}
                     </button>
                   );
@@ -259,16 +266,18 @@ export function ProfilePage() {
               </div>
 
               <Label>{t("profile.athleticProfile")}</Label>
-              <div className="mb-6 mt-2 flex flex-col gap-2.5">
-                {ATHLETIC_TRAITS.map((t) => (
-                  <div key={t.key} className="flex items-center justify-between gap-3">
-                    <span className="text-[12.5px] text-ink-2">{t.label}</span>
-                    <RatingDots
-                      value={ratings[t.key]}
-                      onChange={(n) => setRatings((prev) => ({ ...prev, [t.key]: n }))}
-                    />
-                  </div>
-                ))}
+              <div className="mb-6 mt-2 flex justify-center">
+                <RadarChart
+                  axes={ATHLETIC_TRAITS.map((trait) => ({
+                    key: trait.key,
+                    label: trait.label,
+                    value: ratings[trait.key],
+                  }))}
+                  onChange={(key, next) =>
+                    setRatings((prev) => ({ ...prev, [key as AthleticTraitKey]: next }))
+                  }
+                  handleLabel={(trait, level) => t("profile.setTraitTo", { trait, level })}
+                />
               </div>
 
               <Button
@@ -324,85 +333,6 @@ export function ProfilePage() {
           </div>
         </div>
       </Card>
-
-      {import.meta.env.DEV && (
-        <div className="mt-10">
-          <CreateUser />
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * Signup normally follows Firebase phone verification; the stubbed backend creates the profile
- * directly. Kept on this page so the console can still bootstrap users to act as.
- */
-function CreateUser() {
-  const { actAs } = useActingUser();
-  const { run } = useToast();
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-
-  const create = () =>
-    run(async () => {
-      const created = await api.post<User>("/users", { name, phone, email: email || null });
-      setName("");
-      setPhone("");
-      setEmail("");
-      setOpen(false);
-      actAs(created); // start impersonating the new (credential-less) user
-    }, t("profile.userCreated"));
-
-  return (
-    <>
-      <SectionLabel>{t("profile.addUser")}</SectionLabel>
-      {!open ? (
-        <Button variant="ghost" onClick={() => setOpen(true)}>
-          {t("profile.createUser")}
-        </Button>
-      ) : (
-        <Card className="flex flex-wrap items-end gap-2.5 p-4">
-          <div>
-            <Label>{t("profile.name")}</Label>
-            <input
-              className="field w-[160px]"
-              autoFocus
-              placeholder="Alice"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>{t("profile.phoneUnique")}</Label>
-            <input
-              className="field w-[170px]"
-              placeholder="+15555550100"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>{t("profile.emailOptional")}</Label>
-            <input
-              className="field w-[200px]"
-              placeholder="alice@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <Button onClick={create} disabled={!name || !phone}>
-            {t("profile.create")}
-          </Button>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            {t("profile.cancel")}
-          </Button>
-        </Card>
-      )}
-      <p className="mt-2.5 text-[11.5px] text-faint">{t("profile.createUserNote")}</p>
     </>
   );
 }

@@ -363,7 +363,6 @@
   "profile": {
     "title": "Profile",
     "nobodySelected": "Nobody selected — pick a user from the chip in the top right",
-    "orCreateBelow": ", or create one below",
     "verified": "✓ Verified",
     "unverified": "Unverified",
     "onKickoffSince": "on Kickoff since {{year}}",
@@ -384,6 +383,7 @@
     "city": "City",
     "favoriteSports": "Favorite sports",
     "athleticProfile": "Athletic profile",
+    "setTraitTo": "Set {{trait}} to {{level}}",
     "saveChanges": "Save changes",
     "profileUpdated": "Profile updated",
     "phoneReadOnlyNote": "Phone is set at signup and is the Firebase-verified identity, so it's read-only here.",
@@ -392,15 +392,7 @@
     "reputationNote": "The design shows a rating breakdown across punctuality, sportsmanship and communication. Nothing backs it yet — there are no rating, review or strike fields on the API — so these are left blank rather than filled with sample numbers.",
     "punctuality": "Punctuality",
     "sportsmanship": "Sportsmanship",
-    "communication": "Communication",
-    "addUser": "Add a user",
-    "createUser": "+ Create a user",
-    "phoneUnique": "Phone (unique)",
-    "emailOptional": "Email (optional)",
-    "create": "Create",
-    "cancel": "Cancel",
-    "userCreated": "User created",
-    "createUserNote": "The new user becomes the one you're acting as. Phone stays unverified until Firebase is wired up."
+    "communication": "Communication"
   },
   "negotiation": {
     "matchChallenge": "Match challenge",
