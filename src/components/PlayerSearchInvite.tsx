@@ -8,6 +8,7 @@
 // excluded — a captain can still invite anyone by name.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import type { Sport, User } from "../api/types";
@@ -30,6 +31,7 @@ export function PlayerSearchInvite({
   onInvited: (user: User) => void;
 }) {
   const { run } = useToast();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,7 @@ export function PlayerSearchInvite({
   const invite = (user: User) =>
     run(
       () => api.post(`/teams/${teamId}/roster-invitations`, { user_id: user.id }),
-      `Invite sent to ${user.name}`,
+      t("playerSearchInvite.inviteSentTo", { name: user.name }),
     ).then((ok) => {
       if (ok) {
         setInvitedIds((prev) => new Set(prev).add(user.id));
@@ -77,15 +79,17 @@ export function PlayerSearchInvite({
       <input
         className="field w-full"
         autoFocus
-        placeholder="Search players by name…"
+        placeholder={t("playerSearchInvite.searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
       {query.trim().length >= MIN_QUERY_LENGTH && (
         <div className="mt-2.5 flex flex-col gap-1.5">
-          {loading && <div className="px-1 text-[12.5px] text-faint">Searching…</div>}
+          {loading && <div className="px-1 text-[12.5px] text-faint">{t("playerSearchInvite.searching")}</div>}
           {!loading && visible.length === 0 && (
-            <div className="px-1 text-[12.5px] text-faint">No players match "{query.trim()}".</div>
+            <div className="px-1 text-[12.5px] text-faint">
+              {t("playerSearchInvite.noMatch", { query: query.trim() })}
+            </div>
           )}
           {visible.map((u) => {
             const plays = u.favorite_sports.includes(sport);
@@ -99,11 +103,13 @@ export function PlayerSearchInvite({
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold">{u.name}</div>
                   {plays && (
-                    <div className="text-[11px] text-brand-deep">Plays {SPORT_LABEL[sport]}</div>
+                    <div className="text-[11px] text-brand-deep">
+                      {t("playerSearchInvite.plays", { sport: SPORT_LABEL[sport] })}
+                    </div>
                   )}
                 </div>
                 <Button size="sm" disabled={invited} onClick={() => invite(u)}>
-                  {invited ? "Invited" : "Invite"}
+                  {invited ? t("playerSearchInvite.invited") : t("playerSearchInvite.invite")}
                 </Button>
               </div>
             );

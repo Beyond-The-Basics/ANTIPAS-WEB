@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
 
 import { api } from "../api/client";
@@ -61,6 +62,7 @@ export function AvailabilityPage() {
   const { user: acting } = useActingUser();
   const { run, notify } = useToast();
   const { users, userName } = useUsers();
+  const { t } = useTranslation();
 
   // --- publish side ----------------------------------------------------------
   const [sport, setSport] = useState<Sport>("soccer");
@@ -108,7 +110,7 @@ export function AvailabilityPage() {
 
   const [locating, setLocating] = useState(false);
   const useMyLocation = useCallback(() => {
-    if (!navigator.geolocation) return notify("Geolocation isn't available in this browser", "error");
+    if (!navigator.geolocation) return notify(t("availability.geolocationUnavailable"), "error");
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -119,11 +121,11 @@ export function AvailabilityPage() {
       },
       () => {
         setLocating(false);
-        notify("Couldn't get your location — pick a city or drag the pin instead", "error");
+        notify(t("availability.geolocationFailed"), "error");
       },
       { enableHighAccuracy: true, timeout: 8000 },
     );
-  }, [notify]);
+  }, [notify, t]);
 
   const searchCenter = useMemo(() => {
     if (!searchCityName) return null;
@@ -157,8 +159,8 @@ export function AvailabilityPage() {
   }, [load]);
 
   const publish = async () => {
-    if (!acting) return notify("Pick who you're acting as first", "error");
-    if (!cityName) return notify("Choose your city first", "error");
+    if (!acting) return notify(t("availability.pickActingFirst"), "error");
+    if (!cityName) return notify(t("availability.chooseCityFirst"), "error");
     await run(
       () =>
         api.post(`/player-availability`, {
@@ -169,7 +171,7 @@ export function AvailabilityPage() {
           longitude: position[1],
           radius_km: radiusKm,
         }),
-      "Availability published",
+      t("availability.availabilityPublished"),
     ).then(() => load());
   };
 
@@ -182,10 +184,7 @@ export function AvailabilityPage() {
 
   return (
     <>
-      <PageTitle
-        title="Availability"
-        subtitle="See who's free nearby, pick your sport and city, and broadcast — free, no credits"
-      />
+      <PageTitle title={t("availability.title")} subtitle={t("availability.subtitle")} />
 
       <div className="mb-6 flex flex-col gap-4 lg:flex-row">
         <div className="relative flex-1 overflow-hidden rounded-card border border-line">
@@ -224,7 +223,7 @@ export function AvailabilityPage() {
 
         <Card className="flex w-full flex-col gap-3.5 p-4 lg:w-72 lg:shrink-0">
           <div>
-            <Label>Sport</Label>
+            <Label>{t("availability.sport")}</Label>
             <select
               className="field mt-1 w-full !text-[13px] font-semibold"
               value={sport}
@@ -239,7 +238,7 @@ export function AvailabilityPage() {
           </div>
 
           <div>
-            <Label>Country</Label>
+            <Label>{t("availability.country")}</Label>
             <select
               className="field mt-1 w-full !text-[13px]"
               value={country}
@@ -258,35 +257,33 @@ export function AvailabilityPage() {
           </div>
 
           <div>
-            <Label>City</Label>
+            <Label>{t("availability.city")}</Label>
             <select
               className="field mt-1 w-full !text-[13px]"
               value={cityName}
               onChange={(e) => pickCity(country, e.target.value)}
             >
-              <option value="">Select a city…</option>
+              <option value="">{t("availability.selectCity")}</option>
               {CITIES_BY_COUNTRY[country].map((c) => (
                 <option key={c.name} value={c.name}>
                   {c.name}
                 </option>
               ))}
             </select>
-            <div className="mt-1 text-[11px] text-faint">
-              Picking a city drops the pin there — drag it to fine-tune your exact spot.
-            </div>
+            <div className="mt-1 text-[11px] text-faint">{t("availability.pinHint")}</div>
             <button
               type="button"
               onClick={useMyLocation}
               className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand hover:underline disabled:opacity-60"
               disabled={locating}
             >
-              📍 {locating ? "Locating…" : "Use my current location"}
+              📍 {locating ? t("availability.locating") : t("availability.useMyLocation")}
             </button>
           </div>
 
           <div>
             <div className="flex items-baseline justify-between">
-              <Label>Radius</Label>
+              <Label>{t("availability.radius")}</Label>
               <span className="text-[12px] font-bold text-ink">{radiusKm} km</span>
             </div>
             <input
@@ -304,24 +301,23 @@ export function AvailabilityPage() {
             onClick={publish}
             disabled={!acting || !cityName}
           >
-            Publish here
+            {t("availability.publishHere")}
           </Button>
         </Card>
       </div>
 
       <p className="mb-8 text-[11.5px] leading-snug text-faint">
         {acting?.latitude != null
-          ? "Showing your saved location from a previous broadcast — pick a city or drag the pin, change the radius, and publish again to update it."
-          : "Choose your country and city to place the pin, drag it to fine-tune, then pick how far around you want to be discoverable."}{" "}
-        The date and team selectors from the design are omitted — there are no fields behind them
-        yet.
+          ? t("availability.savedLocationNote")
+          : t("availability.chooseLocationNote")}{" "}
+        {t("availability.omittedFieldsNote")}
       </p>
 
-      <SectionLabel>My broadcasts</SectionLabel>
+      <SectionLabel>{t("availability.myBroadcasts")}</SectionLabel>
       {!acting ? (
-        <Empty>Pick who you're acting as to see your broadcasts.</Empty>
+        <Empty>{t("availability.pickActingToSeeBroadcasts")}</Empty>
       ) : mine.length === 0 ? (
-        <Empty>None published.</Empty>
+        <Empty>{t("availability.nonePublished")}</Empty>
       ) : (
         <div className="mb-8 flex flex-col gap-2.5">
           {mine.map((a) => (
@@ -331,7 +327,8 @@ export function AvailabilityPage() {
                 <div className="text-[13.5px] font-semibold">{SPORT_LABEL[a.sport]}</div>
                 <div className="mt-0.5 text-xs text-muted">
                   {a.city}
-                  {a.country ? ` · ${a.country}` : ""} · expires in {expiresLabel(a.expires_at)}
+                  {a.country ? ` · ${a.country}` : ""}{" "}
+                  {t("availability.expiresIn", { time: expiresLabel(a.expires_at, t) })}
                 </div>
               </div>
               <RadiusChip km={a.radius_km} />
@@ -341,12 +338,13 @@ export function AvailabilityPage() {
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    run(() => api.post(`/player-availability/${a.id}/withdraw`), "Withdrawn").then(
-                      load,
-                    )
+                    run(
+                      () => api.post(`/player-availability/${a.id}/withdraw`),
+                      t("availability.withdrawn"),
+                    ).then(load)
                   }
                 >
-                  Withdraw
+                  {t("availability.withdraw")}
                 </Button>
               )}
             </Card>
@@ -355,14 +353,14 @@ export function AvailabilityPage() {
       )}
 
       <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
-        <SectionLabel>Find available players</SectionLabel>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <SectionLabel>{t("availability.findAvailablePlayers")}</SectionLabel>
+        <div className="ms-auto flex flex-wrap items-center gap-2">
           <select
             className="field !py-2 !text-[12.5px] font-semibold"
             value={filterSport}
             onChange={(e) => setFilterSport(e.target.value as Sport | "")}
           >
-            <option value="">All sports</option>
+            <option value="">{t("availability.allSports")}</option>
             {SPORTS.map((s) => (
               <option key={s} value={s}>
                 {SPORT_LABEL[s]}
@@ -388,7 +386,7 @@ export function AvailabilityPage() {
             value={searchCityName}
             onChange={(e) => setSearchCityName(e.target.value)}
           >
-            <option value="">Anywhere</option>
+            <option value="">{t("availability.anywhere")}</option>
             {CITIES_BY_COUNTRY[searchCountry].map((c) => (
               <option key={c.name} value={c.name}>
                 {c.name}
@@ -400,7 +398,7 @@ export function AvailabilityPage() {
 
       {searchCenter && (
         <div className="mb-3.5 flex items-center gap-2.5 rounded-tile border border-line bg-canvas px-3.5 py-2">
-          <span className="text-[11px] font-semibold text-muted">Within</span>
+          <span className="text-[11px] font-semibold text-muted">{t("availability.within")}</span>
           <input
             type="range"
             min={MIN_RADIUS_KM}
@@ -410,7 +408,7 @@ export function AvailabilityPage() {
             className="h-1.5 flex-1 cursor-pointer accent-brand"
           />
           <span className="whitespace-nowrap text-[11px] font-bold text-ink">
-            {searchRadiusKm} km of {searchCityName}
+            {t("availability.kmOf", { km: searchRadiusKm, city: searchCityName })}
           </span>
         </div>
       )}
@@ -418,8 +416,8 @@ export function AvailabilityPage() {
       {others.length === 0 ? (
         <Empty>
           {searchCenter
-            ? `No players available within ${searchRadiusKm} km of ${searchCityName}.`
-            : "No open broadcasts found."}
+            ? t("availability.noPlayersWithin", { km: searchRadiusKm, city: searchCityName })
+            : t("availability.noOpenBroadcasts")}
         </Empty>
       ) : (
         <div className="flex flex-col gap-2">

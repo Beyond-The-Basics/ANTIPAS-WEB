@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap } from "react-leaflet";
 
@@ -95,6 +96,8 @@ export function DiscoverPage() {
   const { run } = useToast();
   const { users, userName } = useUsers();
   const { teams: myTeams } = useMyTeams(acting);
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
 
   const [sport, setSport] = useState<Sport | "">("");
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
@@ -191,10 +194,7 @@ export function DiscoverPage() {
 
   return (
     <>
-      <PageTitle
-        title="Discover"
-        subtitle="Find teams, opponents, guests, and players near you"
-      />
+      <PageTitle title={t("discover.title")} subtitle={t("discover.subtitle")} />
 
       <div className="mb-7 flex flex-wrap gap-2.5">
         <select
@@ -202,7 +202,7 @@ export function DiscoverPage() {
           value={sport}
           onChange={(e) => setSport(e.target.value as Sport | "")}
         >
-          <option value="">All sports</option>
+          <option value="">{t("discover.allSports")}</option>
           {SPORTS.map((s) => (
             <option key={s} value={s}>
               {SPORT_LABEL[s]}
@@ -224,7 +224,7 @@ export function DiscoverPage() {
           ))}
         </select>
         <select className="field" value={cityName} onChange={(e) => setCityName(e.target.value)}>
-          <option value="">All cities</option>
+          <option value="">{t("discover.allCities")}</option>
           {CITIES_BY_COUNTRY[country].map((c) => (
             <option key={c.name} value={c.name}>
               {c.name}
@@ -234,8 +234,8 @@ export function DiscoverPage() {
       </div>
 
       <div className="mb-9 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Quadrant title="Teams recruiting">
-          {rosterSearches.length === 0 && <Empty>None found.</Empty>}
+        <Quadrant title={t("discover.teamsRecruiting")}>
+          {rosterSearches.length === 0 && <Empty>{t("discover.noneFound")}</Empty>}
           {rosterSearches.map((s) => {
             const sp = teamSport(s.team_id);
             return (
@@ -248,26 +248,28 @@ export function DiscoverPage() {
                     {teamName(s.team_id)}
                   </Link>
                   <div className="mt-0.5 text-xs text-muted">
-                    {sp ? SPORT_LABEL[sp] : "—"} · {s.city} · expires in {expiresLabel(s.expires_at)}
+                    {sp ? SPORT_LABEL[sp] : "—"} · {s.city} · expires in {expiresLabel(s.expires_at, t)}
                   </div>
                 </div>
                 <Button
                   size="sm"
                   disabled={!acting}
-                  title={acting ? undefined : "Pick who you're acting as first"}
+                  title={acting ? undefined : t("discover.pickActingFirst")}
                   onClick={() =>
-                    run(() => api.post(`/roster-searches/${s.id}/applications`), "Applied").then(load)
+                    run(() => api.post(`/roster-searches/${s.id}/applications`), t("discover.applied")).then(
+                      load,
+                    )
                   }
                 >
-                  Apply
+                  {t("discover.apply")}
                 </Button>
               </Row>
             );
           })}
         </Quadrant>
 
-        <Quadrant title="Teams seeking an opponent">
-          {opponentSearches.length === 0 && <Empty>None found.</Empty>}
+        <Quadrant title={t("discover.teamsSeekingOpponent")}>
+          {opponentSearches.length === 0 && <Empty>{t("discover.noneFound")}</Empty>}
           {opponentSearches.map((s) => (
             <Row key={s.id}>
               <div className="min-w-0">
@@ -278,7 +280,7 @@ export function DiscoverPage() {
                   {teamName(s.team_id)}
                 </Link>
                 <div className="mt-0.5 text-xs text-muted">
-                  {dateLabel(s.date)} · {s.city} · {s.pitch}
+                  {dateLabel(s.date, language)} · {s.city} · {s.pitch}
                 </div>
               </div>
               <div className="flex flex-none items-center gap-2">
@@ -287,7 +289,7 @@ export function DiscoverPage() {
                   value={respondAs[s.id] ?? ""}
                   onChange={(e) => setRespondAs((p) => ({ ...p, [s.id]: e.target.value }))}
                 >
-                  <option value="">as…</option>
+                  <option value="">{t("discover.respondAsPlaceholder")}</option>
                   {teams
                     .filter((t) => t.sport === s.sport && t.id !== s.team_id)
                     .map((t) => (
@@ -299,26 +301,26 @@ export function DiscoverPage() {
                 <Button
                   size="sm"
                   disabled={!respondAs[s.id]}
-                  title={respondAs[s.id] ? undefined : "Pick which of your teams is challenging"}
+                  title={respondAs[s.id] ? undefined : t("discover.pickChallengingTeam")}
                   onClick={() =>
                     run(
                       () =>
                         api.post(`/opponent-searches/${s.id}/applications`, {
                           responding_team_id: respondAs[s.id],
                         }),
-                      "Challenge sent",
+                      t("discover.challengeSent"),
                     ).then(load)
                   }
                 >
-                  Challenge
+                  {t("discover.challenge")}
                 </Button>
               </div>
             </Row>
           ))}
         </Quadrant>
 
-        <Quadrant title="Teams needing a guest">
-          {guestSearches.length === 0 && <Empty>None found.</Empty>}
+        <Quadrant title={t("discover.teamsNeedingGuest")}>
+          {guestSearches.length === 0 && <Empty>{t("discover.noneFound")}</Empty>}
           {guestSearches.map((s) => (
             <Row key={s.id}>
               <div className="min-w-0">
@@ -329,18 +331,20 @@ export function DiscoverPage() {
                   {teamName(s.team_id)}
                 </Link>
                 <div className="mt-0.5 text-xs text-muted">
-                  {s.city} · expires in {expiresLabel(s.expires_at)}
+                  {s.city} · expires in {expiresLabel(s.expires_at, t)}
                 </div>
               </div>
               <Button
                 size="sm"
                 disabled={!acting}
-                title={acting ? undefined : "Pick who you're acting as first"}
+                title={acting ? undefined : t("discover.pickActingFirst")}
                 onClick={() =>
-                  run(() => api.post(`/guest-searches/${s.id}/applications`), "Offered").then(load)
+                  run(() => api.post(`/guest-searches/${s.id}/applications`), t("discover.offered")).then(
+                    load,
+                  )
                 }
               >
-                Offer to sub
+                {t("discover.offerToSub")}
               </Button>
             </Row>
           ))}
@@ -351,9 +355,9 @@ export function DiscoverPage() {
       <div className="mb-3 flex items-center gap-2">
         <div className="h-[9px] w-[9px] rounded-[2px] bg-brand" />
         <div className="text-[13px] font-bold">
-          Available players{cityName ? ` in ${cityName}` : ` in ${country}`}
+          {t("discover.availablePlayersIn", { place: cityName || country })}
         </div>
-        <span className="text-xs text-muted">· click a pin or a card to view and invite</span>
+        <span className="text-xs text-muted">{t("discover.clickToInvite")}</span>
       </div>
 
       <div className="mb-9 flex flex-col gap-4 lg:flex-row">
@@ -380,7 +384,7 @@ export function DiscoverPage() {
           {mappablePlayers.length === 0 && (
             <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
               <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-muted shadow-float">
-                No players plotted here yet
+                {t("discover.noPlayersPlotted")}
               </span>
             </div>
           )}
@@ -388,7 +392,7 @@ export function DiscoverPage() {
 
         <div className="flex w-full flex-col gap-2 lg:w-80 lg:shrink-0">
           {players.length === 0 ? (
-            <Empty>No players available here.</Empty>
+            <Empty>{t("discover.noPlayersHere")}</Empty>
           ) : (
             players.map((a) => (
               <Card
@@ -421,11 +425,11 @@ export function DiscoverPage() {
         />
       )}
 
-      <SectionLabel>My applications &amp; invites</SectionLabel>
+      <SectionLabel>{t("discover.myApplications")}</SectionLabel>
       {!acting ? (
-        <Empty>Pick who you're acting as to see your applications.</Empty>
+        <Empty>{t("discover.pickActingToSeeApps")}</Empty>
       ) : myApps.length + myGuestApps.length === 0 ? (
-        <Empty>None yet.</Empty>
+        <Empty>{t("discover.noneYet")}</Empty>
       ) : (
         <div className="flex flex-col gap-2.5">
           {myApps.map((a) => (
@@ -434,8 +438,8 @@ export function DiscoverPage() {
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold">
                   {a.direction === "team_invited"
-                    ? `Roster invitation from ${teamName(a.team_id)}`
-                    : `Roster application to ${teamName(a.team_id)}`}
+                    ? t("discover.rosterInvitationFrom", { team: teamName(a.team_id) })
+                    : t("discover.rosterApplicationTo", { team: teamName(a.team_id) })}
                 </div>
                 <div className="mt-0.5 text-xs text-muted">
                   {teamSport(a.team_id) ? SPORT_LABEL[teamSport(a.team_id)!] : "—"}
@@ -448,21 +452,23 @@ export function DiscoverPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() =>
-                      run(() => api.post(`/roster-applications/${a.id}/decline`), "Declined").then(load)
+                      run(() => api.post(`/roster-applications/${a.id}/decline`), t("discover.declined")).then(
+                        load,
+                      )
                     }
                   >
-                    Decline
+                    {t("discover.decline")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() =>
                       run(
                         () => api.post(`/roster-applications/${a.id}/accept`),
-                        "Accepted — you joined",
+                        t("discover.acceptedJoined"),
                       ).then(load)
                     }
                   >
-                    Accept
+                    {t("discover.accept")}
                   </Button>
                 </>
               )}
@@ -471,10 +477,12 @@ export function DiscoverPage() {
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    run(() => api.post(`/roster-applications/${a.id}/withdraw`), "Withdrawn").then(load)
+                    run(() => api.post(`/roster-applications/${a.id}/withdraw`), t("discover.withdrawn")).then(
+                      load,
+                    )
                   }
                 >
-                  Withdraw
+                  {t("discover.withdraw")}
                 </Button>
               )}
             </Card>
@@ -485,11 +493,11 @@ export function DiscoverPage() {
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold">
                   {a.direction === "team_invited"
-                    ? `Guest invitation from ${teamName(a.team_id)}`
-                    : `Guest offer to ${teamName(a.team_id)}`}
+                    ? t("discover.guestInvitationFrom", { team: teamName(a.team_id) })
+                    : t("discover.guestOfferTo", { team: teamName(a.team_id) })}
                 </div>
                 <Link to={`/matches/${a.match_id}`} className="mt-0.5 block text-xs text-muted">
-                  View the match
+                  {t("discover.viewMatch")}
                 </Link>
               </div>
               <Pill value={a.status} />
@@ -499,21 +507,23 @@ export function DiscoverPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() =>
-                      run(() => api.post(`/guest-applications/${a.id}/decline`), "Declined").then(load)
+                      run(() => api.post(`/guest-applications/${a.id}/decline`), t("discover.declined")).then(
+                        load,
+                      )
                     }
                   >
-                    Decline
+                    {t("discover.decline")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() =>
                       run(
                         () => api.post(`/guest-applications/${a.id}/accept`),
-                        "Accepted — you're a guest in this match",
+                        t("discover.acceptedGuest"),
                       ).then(load)
                     }
                   >
-                    Accept
+                    {t("discover.accept")}
                   </Button>
                 </>
               )}
@@ -522,10 +532,12 @@ export function DiscoverPage() {
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    run(() => api.post(`/guest-applications/${a.id}/withdraw`), "Withdrawn").then(load)
+                    run(() => api.post(`/guest-applications/${a.id}/withdraw`), t("discover.withdrawn")).then(
+                      load,
+                    )
                   }
                 >
-                  Withdraw
+                  {t("discover.withdraw")}
                 </Button>
               )}
             </Card>

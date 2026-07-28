@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -18,7 +19,7 @@ interface Request {
   key: string;
   title: string;
   subtitle: string;
-  actions: { label: string; primary?: boolean; run: () => Promise<unknown> }[];
+  actions: { label: string; successMessage: string; primary?: boolean; run: () => Promise<unknown> }[];
 }
 
 export function HomePage() {
@@ -26,6 +27,8 @@ export function HomePage() {
   const { run } = useToast();
   const navigate = useNavigate();
   const { teams, allTeams, reload: reloadTeams } = useMyTeams(acting);
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const { userName } = useUsers();
 
   const [matches, setMatches] = useState<Match[]>([]);
@@ -84,6 +87,23 @@ export function HomePage() {
 
     const items: Request[] = [];
 
+    const decline = (run: () => Promise<unknown>) => ({
+      label: t("home.decline"),
+      successMessage: t("home.declined"),
+      run,
+    });
+    const accept = (run: () => Promise<unknown>) => ({
+      label: t("home.accept"),
+      successMessage: t("home.accepted"),
+      primary: true,
+      run,
+    });
+    const withdraw = (run: () => Promise<unknown>) => ({
+      label: t("home.withdraw"),
+      successMessage: t("home.withdrawn"),
+      run,
+    });
+
     // Inbound to teams I help run.
     for (const { team, role, roster, opponent } of perTeam) {
       const manages = role === "captain" || role === "admin";
@@ -92,15 +112,11 @@ export function HomePage() {
         if (a.status !== "pending" || a.direction !== "player_applied") continue;
         items.push({
           key: `roster-${a.id}`,
-          title: `${userName(a.user_id)} wants to join ${team.name}`,
-          subtitle: "Roster application",
+          title: t("home.rosterWantsToJoin", { user: userName(a.user_id), team: team.name }),
+          subtitle: t("home.rosterApplication"),
           actions: [
-            { label: "Decline", run: () => api.post(`/roster-applications/${a.id}/decline`) },
-            {
-              label: "Accept",
-              primary: true,
-              run: () => api.post(`/roster-applications/${a.id}/accept`),
-            },
+            decline(() => api.post(`/roster-applications/${a.id}/decline`)),
+            accept(() => api.post(`/roster-applications/${a.id}/accept`)),
           ],
         });
       }
@@ -108,11 +124,15 @@ export function HomePage() {
         if (a.status !== "pending") continue;
         items.push({
           key: `opp-${a.id}`,
-          title: `${teamName(a.responding_team_id)} wants to play ${team.name}`,
-          subtitle: "Opponent application",
+          title: t("home.opponentWantsToPlay", {
+            team: teamName(a.responding_team_id),
+            yourTeam: team.name,
+          }),
+          subtitle: t("home.opponentApplication"),
           actions: [
             {
-              label: "Confirm",
+              label: t("home.confirm"),
+              successMessage: t("home.confirmed"),
               primary: true,
               run: () => api.post(`/opponent-applications/${a.id}/confirm`),
             },
@@ -127,25 +147,19 @@ export function HomePage() {
       if (a.direction === "team_invited") {
         items.push({
           key: `my-roster-${a.id}`,
-          title: `${teamName(a.team_id)} invited you to join`,
-          subtitle: "Roster invitation",
+          title: t("home.rosterInvited", { team: teamName(a.team_id) }),
+          subtitle: t("home.rosterInvitation"),
           actions: [
-            { label: "Decline", run: () => api.post(`/roster-applications/${a.id}/decline`) },
-            {
-              label: "Accept",
-              primary: true,
-              run: () => api.post(`/roster-applications/${a.id}/accept`),
-            },
+            decline(() => api.post(`/roster-applications/${a.id}/decline`)),
+            accept(() => api.post(`/roster-applications/${a.id}/accept`)),
           ],
         });
       } else {
         items.push({
           key: `my-roster-${a.id}`,
-          title: `You applied to ${teamName(a.team_id)}`,
-          subtitle: "Awaiting their response",
-          actions: [
-            { label: "Withdraw", run: () => api.post(`/roster-applications/${a.id}/withdraw`) },
-          ],
+          title: t("home.youAppliedTo", { team: teamName(a.team_id) }),
+          subtitle: t("home.awaitingResponse"),
+          actions: [withdraw(() => api.post(`/roster-applications/${a.id}/withdraw`))],
         });
       }
     }
@@ -154,31 +168,25 @@ export function HomePage() {
       if (a.direction === "team_invited") {
         items.push({
           key: `my-guest-${a.id}`,
-          title: `${teamName(a.team_id)} invited you as a guest`,
-          subtitle: "Guest invitation",
+          title: t("home.guestInvited", { team: teamName(a.team_id) }),
+          subtitle: t("home.guestInvitation"),
           actions: [
-            { label: "Decline", run: () => api.post(`/guest-applications/${a.id}/decline`) },
-            {
-              label: "Accept",
-              primary: true,
-              run: () => api.post(`/guest-applications/${a.id}/accept`),
-            },
+            decline(() => api.post(`/guest-applications/${a.id}/decline`)),
+            accept(() => api.post(`/guest-applications/${a.id}/accept`)),
           ],
         });
       } else {
         items.push({
           key: `my-guest-${a.id}`,
-          title: `You offered to guest for ${teamName(a.team_id)}`,
-          subtitle: "Awaiting their response",
-          actions: [
-            { label: "Withdraw", run: () => api.post(`/guest-applications/${a.id}/withdraw`) },
-          ],
+          title: t("home.youOfferedGuest", { team: teamName(a.team_id) }),
+          subtitle: t("home.awaitingResponse"),
+          actions: [withdraw(() => api.post(`/guest-applications/${a.id}/withdraw`))],
         });
       }
     }
 
     setRequests(items);
-  }, [acting, teams, teamName, userName]);
+  }, [acting, teams, teamName, userName, t]);
 
   useEffect(() => {
     void load();
@@ -190,25 +198,25 @@ export function HomePage() {
   if (!acting) {
     return (
       <>
-        <h1 className="mb-1 text-[26px] font-bold">Home</h1>
-        <p className="mb-7 text-sm text-muted">
-          Pick who you're acting as from the chip in the top right to see your matches and requests.
-        </p>
-        <Empty>Nobody selected.</Empty>
+        <h1 className="mb-1 text-[26px] font-bold">{t("home.title")}</h1>
+        <p className="mb-7 text-sm text-muted">{t("home.noActingSubtitle")}</p>
+        <Empty>{t("home.nobodySelected")}</Empty>
       </>
     );
   }
 
   return (
     <>
-      <h1 className="mb-1 text-[26px] font-bold">Home</h1>
-      <p className="mb-7 text-sm text-muted">Good to see you, {acting.name.split(" ")[0]}</p>
+      <h1 className="mb-1 text-[26px] font-bold">{t("home.title")}</h1>
+      <p className="mb-7 text-sm text-muted">
+        {t("home.greeting", { name: acting.name.split(" ")[0] })}
+      </p>
 
       <div className="flex items-start gap-7">
         <div className="min-w-0 flex-[1.5]">
-          <SectionLabel>Upcoming matches</SectionLabel>
+          <SectionLabel>{t("home.upcomingMatches")}</SectionLabel>
           {matches.length === 0 ? (
-            <Empty>No confirmed matches yet.</Empty>
+            <Empty>{t("home.noMatches")}</Empty>
           ) : (
             <div className="flex flex-col gap-4">
               {matches.map((m) => (
@@ -222,7 +230,7 @@ export function HomePage() {
                   </div>
                   <div className="flex items-center justify-between gap-3 px-[18px] py-4">
                     <div className="min-w-0">
-                      <div className="text-sm font-bold">{dateLabel(m.date)}</div>
+                      <div className="text-sm font-bold">{dateLabel(m.date, language)}</div>
                       <div className="mt-0.5 text-[12.5px] text-muted">
                         {m.pitch} · {m.city}
                       </div>
@@ -236,9 +244,9 @@ export function HomePage() {
         </div>
 
         <div className="w-72 flex-none pt-[34px]">
-          <SectionLabel>Requests ({requests.length})</SectionLabel>
+          <SectionLabel>{t("home.requests", { count: requests.length })}</SectionLabel>
           {requests.length === 0 ? (
-            <Empty>No requests right now.</Empty>
+            <Empty>{t("home.noRequests")}</Empty>
           ) : (
             <div className="flex flex-col gap-3">
               {requests.map((r) => (
@@ -256,7 +264,7 @@ export function HomePage() {
                     {r.actions.map((a) => (
                       <button
                         key={a.label}
-                        onClick={() => act(a.run, `${a.label}d`)}
+                        onClick={() => act(a.run, a.successMessage)}
                         className={`flex-1 rounded-lg py-2 text-[12.5px] font-semibold ${
                           a.primary
                             ? "border-none bg-brand text-white hover:bg-brand-dark"

@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
 import type { User } from "../api/types";
 import { useActingUser } from "../context/ActingUser";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Avatar } from "./ui";
 
 const NAV = [
-  { to: "/home", label: "Home" },
-  { to: "/discover", label: "Discover" },
-  { to: "/teams", label: "Teams" },
-  { to: "/availability", label: "Availability" },
+  { to: "/home", labelKey: "nav.home" },
+  { to: "/discover", labelKey: "nav.discover" },
+  { to: "/teams", labelKey: "nav.teams" },
+  { to: "/availability", labelKey: "nav.availability" },
 ];
 
-function Nav({ to, label }: { to: string; label: string }) {
+function Nav({ to, labelKey }: { to: string; labelKey: string }) {
+  const { t } = useTranslation();
   return (
     <NavLink
       to={to}
@@ -23,7 +26,7 @@ function Nav({ to, label }: { to: string; label: string }) {
         }`
       }
     >
-      {label}
+      {t(labelKey)}
     </NavLink>
   );
 }
@@ -38,6 +41,7 @@ function Nav({ to, label }: { to: string; label: string }) {
 function ProfileChip() {
   const { user, isAuthenticated, actAs, logout } = useActingUser();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -70,10 +74,10 @@ function ProfileChip() {
   }, [open]);
 
   return (
-    <div className="relative ml-auto" ref={ref}>
+    <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2.5 rounded-full border border-line bg-white py-1 pl-1 pr-2.5"
+        className="flex items-center gap-2.5 rounded-full border border-line bg-white py-1 ps-1 pe-2.5"
       >
         {user ? (
           <Avatar name={user.name} />
@@ -83,28 +87,28 @@ function ProfileChip() {
           </div>
         )}
         <span className="text-[13px] font-semibold">
-          {user ? user.name.split(" ")[0] : "Sign in"}
+          {user ? user.name.split(" ")[0] : t("layout.signIn")}
         </span>
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-64 rounded-tile border border-line bg-white py-1.5 shadow-float">
+        <div className="absolute end-0 z-30 mt-2 w-64 rounded-tile border border-line bg-white py-1.5 shadow-float">
           {user && (
             <button
               onClick={() => {
                 setOpen(false);
                 navigate("/profile");
               }}
-              className="w-full px-4 py-2 text-left text-[13px] font-semibold hover:bg-canvas"
+              className="w-full px-4 py-2 text-start text-[13px] font-semibold hover:bg-canvas"
             >
-              View profile
+              {t("layout.viewProfile")}
             </button>
           )}
           {import.meta.env.DEV && (
             <>
               <div className="my-1.5 border-t border-line-2" />
               <div className="px-4 pb-1 text-[11px] font-bold uppercase tracking-[.05em] text-faint">
-                Act as <span className="font-medium normal-case">(dev only)</span>
+                {t("layout.actAs")} <span className="font-medium normal-case">{t("layout.devOnly")}</span>
               </div>
               <div className="max-h-64 overflow-y-auto">
                 {users.map((u) => (
@@ -114,7 +118,7 @@ function ProfileChip() {
                       actAs(u);
                       setOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] hover:bg-canvas ${
+                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-start text-[13px] hover:bg-canvas ${
                       u.id === user?.id ? "font-bold text-brand-deep" : ""
                     }`}
                   >
@@ -123,7 +127,7 @@ function ProfileChip() {
                   </button>
                 ))}
                 {users.length === 0 && (
-                  <div className="px-4 py-2 text-[12.5px] text-faint">No users yet.</div>
+                  <div className="px-4 py-2 text-[12.5px] text-faint">{t("layout.noUsers")}</div>
                 )}
               </div>
             </>
@@ -133,9 +137,9 @@ function ProfileChip() {
               <div className="my-1.5 border-t border-line-2" />
               <button
                 onClick={signOut}
-                className="w-full px-4 py-2 text-left text-[13px] text-muted hover:bg-canvas"
+                className="w-full px-4 py-2 text-start text-[13px] text-muted hover:bg-canvas"
               >
-                {isAuthenticated ? "Sign out" : "Stop acting as"}
+                {isAuthenticated ? t("layout.signOut") : t("layout.stopActingAs")}
               </button>
             </>
           )}
@@ -159,7 +163,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Nav key={n.to} {...n} />
             ))}
           </nav>
-          <ProfileChip />
+          <div className="ms-auto flex items-center gap-3">
+            <LanguageSwitcher />
+            <ProfileChip />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-[1100px] px-6 pb-16 pt-10">{children}</main>

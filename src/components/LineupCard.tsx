@@ -11,6 +11,7 @@
 // target: dropping swaps/moves players and reports the whole new arrangement via onReorder.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { GameType, Membership, Team } from "../api/types";
 import { Avatar, SPORT_LABEL } from "./ui";
@@ -91,7 +92,7 @@ function PlayerChip({
       <div className="relative">
         <Avatar name={name} size={44} />
         {jerseyNumber !== null && (
-          <div className="absolute -bottom-1 -right-1 flex h-[19px] w-[19px] items-center justify-center rounded-full border-2 border-white bg-brand-deep text-[10px] font-extrabold text-white">
+          <div className="absolute -bottom-1 -end-1 flex h-[19px] w-[19px] items-center justify-center rounded-full border-2 border-white bg-brand-deep text-[10px] font-extrabold text-white">
             {jerseyNumber}
           </div>
         )}
@@ -105,13 +106,14 @@ function PlayerChip({
 
 /** An unfilled lineup position — same footprint as PlayerChip so the rows stay aligned. */
 function EmptyChip() {
+  const { t } = useTranslation();
   return (
     <div className="flex w-[76px] flex-none flex-col items-center gap-1.5">
       <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed border-white/50 text-white/60">
         <span className="text-lg font-bold leading-none">+</span>
       </div>
       <div className="w-full rounded-full bg-white/15 px-1.5 py-[3px] text-center text-[10px] font-bold uppercase tracking-[.02em] text-white/60">
-        Open
+        {t("lineup.open")}
       </div>
     </div>
   );
@@ -135,6 +137,7 @@ export function LineupCard({
   editable?: boolean;
   onReorder?: (assignments: LineupAssignment[]) => void;
 }) {
+  const { t } = useTranslation();
   const [drag, setDrag] = useState<DragSource | null>(null);
 
   const total = gameType?.players_per_side ?? members.length;
@@ -184,7 +187,7 @@ export function LineupCard({
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[.08em] text-muted">
-            Starting lineup
+            {t("lineup.startingLineup")}
           </div>
           <div className="text-lg font-extrabold">{team.name}</div>
         </div>
@@ -197,7 +200,7 @@ export function LineupCard({
 
       {editable && (
         <div className="border-b border-line bg-canvas px-5 py-2 text-[11.5px] font-semibold text-muted">
-          Drag players to rearrange the lineup — drop onto a spot to swap, or onto Subs to bench.
+          {t("lineup.dragHint")}
         </div>
       )}
 
@@ -207,7 +210,9 @@ export function LineupCard({
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/25" />
 
         {total === 0 ? (
-          <p className="relative text-center text-[12.5px] text-white/85">No active members yet.</p>
+          <p className="relative text-center text-[12.5px] text-white/85">
+            {t("lineup.noActiveMembers")}
+          </p>
         ) : (
           rowsOfSlots.map((row, ri) => (
             <div key={ri} className="relative flex justify-center gap-4">
@@ -241,10 +246,12 @@ export function LineupCard({
           onDragOver={allowDrop}
           onDrop={dropOnSubs}
         >
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-muted">Subs</div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[.08em] text-muted">
+            {t("lineup.subs")}
+          </div>
           {subs.length === 0 ? (
             <p className="text-[12px] text-faint">
-              {editable ? "Drop a player here to bench them." : "None."}
+              {editable ? t("lineup.dropToBench") : t("lineup.none")}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2.5">
@@ -258,7 +265,7 @@ export function LineupCard({
                   }`}
                 >
                   {m.jersey_number !== null && (
-                    <span className="mr-1 text-faint">#{m.jersey_number}</span>
+                    <span className="me-1 text-faint">#{m.jersey_number}</span>
                   )}
                   {userName(m.user_id)}
                 </div>

@@ -4,6 +4,7 @@
 
 import L from "leaflet";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Circle, MapContainer, Marker, TileLayer } from "react-leaflet";
 
@@ -40,6 +41,7 @@ export function PlayerAvailabilityModal({
   onInvited?: () => void;
 }) {
   const { run } = useToast();
+  const { t } = useTranslation();
   const [teamId, setTeamId] = useState("");
 
   const hasLocation = availability.latitude != null && availability.longitude != null;
@@ -55,7 +57,7 @@ export function PlayerAvailabilityModal({
     if (!teamId) return;
     void run(
       () => api.post(`/teams/${teamId}/roster-invitations`, { user_id: availability.user_id }),
-      "Invitation sent",
+      t("playerAvailability.invitationSent"),
     ).then(() => {
       onInvited?.();
       onClose();
@@ -74,7 +76,9 @@ export function PlayerAvailabilityModal({
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
           <Avatar name={user?.name ?? availability.user_id} size={40} />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[15px] font-bold">{user?.name ?? "Player"}</div>
+            <div className="truncate text-[15px] font-bold">
+              {user?.name ?? t("playerAvailability.player")}
+            </div>
             <div className="mt-0.5 text-xs text-muted">
               {SPORT_LABEL[availability.sport]} · {availability.city}
               {availability.country ? ` · ${availability.country}` : ""}
@@ -103,34 +107,37 @@ export function PlayerAvailabilityModal({
               )}
               <Marker position={center} icon={PIN} />
             </MapContainer>
-            <div className="pointer-events-none absolute left-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
-              Discoverable within {availability.radius_km ?? "?"} km
+            <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
+              {t("playerAvailability.discoverableWithin", { km: availability.radius_km ?? "?" })}
             </div>
           </div>
         )}
 
         <div className="px-5 py-4">
-          <SectionLabel>Details</SectionLabel>
+          <SectionLabel>{t("playerAvailability.details")}</SectionLabel>
           <div className="mt-2 flex flex-col gap-1.5 text-[13px] text-ink-2">
-            <div>Sport: {SPORT_LABEL[availability.sport]}</div>
+            <div>{t("playerAvailability.sportLine", { sport: SPORT_LABEL[availability.sport] })}</div>
             <div>
-              City: {availability.city}
+              {t("playerAvailability.cityLine", { city: availability.city })}
               {availability.country ? `, ${availability.country}` : ""}
             </div>
-            <div>Expires in {expiresLabel(availability.expires_at)}</div>
-            {user?.age != null && <div>Age: {user.age}</div>}
+            <div>{t("playerAvailability.expiresIn", { time: expiresLabel(availability.expires_at, t) })}</div>
+            {user?.age != null && <div>{t("playerAvailability.ageLine", { age: user.age })}</div>}
             {user?.favorite_sports?.length ? (
-              <div>Favorite sports: {user.favorite_sports.map((s) => SPORT_LABEL[s]).join(", ")}</div>
+              <div>
+                {t("playerAvailability.favoriteSportsLine", {
+                  list: user.favorite_sports.map((s) => SPORT_LABEL[s]).join(", "),
+                })}
+              </div>
             ) : null}
           </div>
 
           {canInvite && (
             <div className="mt-5 border-t border-line pt-4">
-              <SectionLabel>Invite</SectionLabel>
+              <SectionLabel>{t("playerAvailability.invite")}</SectionLabel>
               {invitableTeams.length === 0 ? (
                 <p className="mt-2 text-[12px] leading-snug text-faint">
-                  You need to captain or co-manage a {SPORT_LABEL[availability.sport]} team to
-                  invite this player.
+                  {t("playerAvailability.needCaptainNote", { sport: SPORT_LABEL[availability.sport] })}
                 </p>
               ) : (
                 <>
@@ -140,10 +147,10 @@ export function PlayerAvailabilityModal({
                       value={teamId}
                       onChange={(e) => setTeamId(e.target.value)}
                     >
-                      <option value="">Choose one of your teams…</option>
-                      {invitableTeams.map((t) => (
-                        <option key={t.team.id} value={t.team.id}>
-                          {t.team.name}
+                      <option value="">{t("playerAvailability.chooseTeam")}</option>
+                      {invitableTeams.map((mt) => (
+                        <option key={mt.team.id} value={mt.team.id}>
+                          {mt.team.name}
                         </option>
                       ))}
                     </select>
@@ -153,18 +160,18 @@ export function PlayerAvailabilityModal({
                       onClick={inviteToTeam}
                       disabled={!teamId}
                     >
-                      Invite to team
+                      {t("playerAvailability.inviteToTeam")}
                     </Button>
                   </div>
                   {gameInviteTeamId && (
                     <p className="mt-2.5 text-[11.5px] leading-snug text-faint">
-                      For a one-off game, invite them as a guest from a confirmed match —{" "}
+                      {t("playerAvailability.oneOffGameNote")}{" "}
                       <Link
                         to={`/teams/${gameInviteTeamId}`}
                         className="font-semibold text-brand hover:underline"
                         onClick={onClose}
                       >
-                        open your team's matches →
+                        {t("playerAvailability.openTeamMatches")}
                       </Link>
                     </p>
                   )}

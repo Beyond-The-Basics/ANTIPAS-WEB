@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from "react-leaflet";
 
@@ -64,6 +65,7 @@ export function TeamsPage() {
   const { run } = useToast();
   const { teams, allTeams } = useMyTeams(acting);
   const { userName } = useUsers();
+  const { t } = useTranslation();
   const [matchesByTeam, setMatchesByTeam] = useState<Record<string, Match[]>>({});
 
   const [rosterSearches, setRosterSearches] = useState<RosterSearch[]>([]);
@@ -133,7 +135,7 @@ export function TeamsPage() {
   const initialCenter = cityCenter ?? points[0] ?? DEFAULT_CENTER;
 
   const apply = (searchId: string) =>
-    run(() => api.post(`/roster-searches/${searchId}/applications`), "Applied to join").then(
+    run(() => api.post(`/roster-searches/${searchId}/applications`), t("teams.appliedToJoin")).then(
       loadRecruiting,
     );
 
@@ -143,18 +145,18 @@ export function TeamsPage() {
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="mb-1 text-[26px] font-bold">Teams</h1>
-          <p className="text-sm text-muted">Teams you belong to</p>
+          <h1 className="mb-1 text-[26px] font-bold">{t("teams.title")}</h1>
+          <p className="text-sm text-muted">{t("teams.subtitle")}</p>
         </div>
         <Button onClick={() => navigate("/teams/new")} disabled={!acting}>
-          + Create team
+          {t("teams.createTeam")}
         </Button>
       </div>
 
       {!acting ? (
-        <Empty>Pick who you're acting as to see your teams.</Empty>
+        <Empty>{t("teams.pickActingToSeeTeams")}</Empty>
       ) : teams.length === 0 ? (
-        <Empty>You're not on any team yet — create one, or find one recruiting below.</Empty>
+        <Empty>{t("teams.noTeamsYet")}</Empty>
       ) : (
         <div className="flex flex-col gap-2.5">
           {teams.map(({ team, role, members }) => {
@@ -164,18 +166,18 @@ export function TeamsPage() {
             let onCta: () => void;
             let subtitle: string;
             if (confirmed && team.completed) {
-              ctaLabel = "View match";
+              ctaLabel = t("teams.viewMatch");
               ctaPrimary = false;
               onCta = () => navigate(`/matches/${confirmed.id}`);
-              subtitle = `${SPORT_LABEL[team.sport]} · match confirmed`;
+              subtitle = t("teams.subtitleConfirmed", { sport: SPORT_LABEL[team.sport] });
             } else if (team.completed) {
-              ctaLabel = "Find opponent";
+              ctaLabel = t("teams.findOpponent");
               onCta = () => navigate(`/teams/${team.id}?tab=opponent`);
-              subtitle = `${SPORT_LABEL[team.sport]} · ready for an opponent`;
+              subtitle = t("teams.subtitleReady", { sport: SPORT_LABEL[team.sport] });
             } else {
-              ctaLabel = "Add players";
+              ctaLabel = t("teams.addPlayers");
               onCta = () => navigate(`/teams/${team.id}?tab=recruiting`);
-              subtitle = `${SPORT_LABEL[team.sport]} · recruiting players`;
+              subtitle = t("teams.subtitleRecruiting", { sport: SPORT_LABEL[team.sport] });
             }
 
             return (
@@ -189,7 +191,7 @@ export function TeamsPage() {
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-bold">{team.name}</span>
                     <RolePill role={role} />
-                    {team.is_adhoc && <Pill value="closed" label="ad hoc" />}
+                    {team.is_adhoc && <Pill value="closed" label={t("teams.adHoc")} />}
                   </div>
                   <div className="mt-0.5 text-xs text-muted">{subtitle}</div>
                 </div>
@@ -212,8 +214,8 @@ export function TeamsPage() {
 
       {/* --- teams recruiting near a location ------------------------------------ */}
       <div className="mb-3.5 mt-10 flex flex-wrap items-center gap-2.5">
-        <SectionLabel>Teams recruiting</SectionLabel>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <SectionLabel>{t("teams.recruitingSection")}</SectionLabel>
+        <div className="ms-auto flex flex-wrap items-center gap-2">
           <select
             className="field !py-2 !text-[12.5px]"
             value={country}
@@ -233,7 +235,7 @@ export function TeamsPage() {
             value={cityName}
             onChange={(e) => setCityName(e.target.value)}
           >
-            <option value="">All cities</option>
+            <option value="">{t("teams.allCities")}</option>
             {CITIES_BY_COUNTRY[country].map((c) => (
               <option key={c.name} value={c.name}>
                 {c.name}
@@ -267,7 +269,7 @@ export function TeamsPage() {
           {mappable.length === 0 && (
             <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
               <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-muted shadow-float">
-                No recruiting teams plotted here
+                {t("teams.noRecruitingPlotted")}
               </span>
             </div>
           )}
@@ -275,7 +277,7 @@ export function TeamsPage() {
 
         <div className="flex w-full flex-col gap-2 lg:w-80 lg:shrink-0">
           {recruiting.length === 0 ? (
-            <Empty>No teams recruiting {cityName ? `in ${cityName}` : `in ${country}`}.</Empty>
+            <Empty>{t("teams.noTeamsRecruitingIn", { place: cityName || country })}</Empty>
           ) : (
             recruiting.map((r) => {
               const mine = myTeamIds.has(r.team.id);
@@ -291,7 +293,7 @@ export function TeamsPage() {
                     <div className="truncate text-[13px] font-semibold">{r.team.name}</div>
                     <div className="mt-0.5 text-[11px] text-muted">
                       {SPORT_LABEL[r.team.sport]} · {r.team.city ?? r.search.city} · expires in{" "}
-                      {expiresLabel(r.search.expires_at)}
+                      {expiresLabel(r.search.expires_at, t)}
                     </div>
                   </div>
                   <button
@@ -299,11 +301,11 @@ export function TeamsPage() {
                     onClick={() => navigate(`/teams/${r.team.id}`)}
                     className="text-[11.5px] font-semibold text-muted hover:text-ink"
                   >
-                    View
+                    {t("teams.view")}
                   </button>
                   {!mine && (
                     <Button size="sm" disabled={!acting} onClick={() => apply(r.search.id)}>
-                      Apply
+                      {t("teams.apply")}
                     </Button>
                   )}
                 </Card>

@@ -1,11 +1,14 @@
 // Login and signup. Both render outside the app shell, on the landing page's lighter scale, so
 // arriving from a landing CTA doesn't jump between two visual languages.
 
+import type { TFunction } from "i18next";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { ApiError } from "../api/client";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useActingUser } from "../context/ActingUser";
+import { translateApiError } from "../lib/errors";
 
 /** Where to land after authenticating: back where you were sent from, else the app home. */
 function useRedirectTarget(): string {
@@ -32,6 +35,9 @@ function AuthShell({
             <img src="/logo-icon.png" alt="" className="h-[34px] w-[34px]" />
             <div className="text-xl font-extrabold tracking-[-0.02em] text-ink">Kickoff</div>
           </Link>
+          <div className="ms-auto">
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
@@ -89,16 +95,16 @@ function SubmitButton({ busy, children }: { busy: boolean; children: ReactNode }
   );
 }
 
-/** API errors are shown verbatim: the backend already words them for humans. */
-function messageFor(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  return "Something went wrong. Please try again.";
+/** Known backend errors get a translated message; anything else falls back generically. */
+function messageFor(err: unknown, t: TFunction): string {
+  return translateApiError(err, t);
 }
 
 export function LoginPage() {
   const { login } = useActingUser();
   const navigate = useNavigate();
   const target = useRedirectTarget();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -113,7 +119,7 @@ export function LoginPage() {
       await login(email, password);
       navigate(target, { replace: true });
     } catch (err) {
-      setError(messageFor(err));
+      setError(messageFor(err, t));
     } finally {
       setBusy(false);
     }
@@ -121,13 +127,13 @@ export function LoginPage() {
 
   return (
     <AuthShell
-      title="Welcome back"
-      subtitle="Sign in to find your next match."
+      title={t("auth.loginTitle")}
+      subtitle={t("auth.loginSubtitle")}
       footer={
         <>
-          New to Kickoff?{" "}
+          {t("auth.newToKickoff")}{" "}
           <Link to="/signup" className="font-semibold">
-            Create an account
+            {t("auth.createAccount")}
           </Link>
         </>
       }
@@ -135,7 +141,7 @@ export function LoginPage() {
       {error && <ErrorNote message={error} />}
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Field
-          label="Email"
+          label={t("auth.fieldEmail")}
           type="email"
           autoComplete="email"
           required
@@ -144,14 +150,14 @@ export function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
         <Field
-          label="Password"
+          label={t("auth.fieldPassword")}
           type="password"
           autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <SubmitButton busy={busy}>Sign in</SubmitButton>
+        <SubmitButton busy={busy}>{t("auth.signIn")}</SubmitButton>
       </form>
     </AuthShell>
   );
@@ -161,6 +167,7 @@ export function SignupPage() {
   const { signup } = useActingUser();
   const navigate = useNavigate();
   const target = useRedirectTarget();
+  const { t } = useTranslation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -173,7 +180,7 @@ export function SignupPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t("auth.passwordMismatch"));
       return;
     }
     setBusy(true);
@@ -182,7 +189,7 @@ export function SignupPage() {
       await signup({ name, email, phone, password });
       navigate(target, { replace: true });
     } catch (err) {
-      setError(messageFor(err));
+      setError(messageFor(err, t));
     } finally {
       setBusy(false);
     }
@@ -190,13 +197,13 @@ export function SignupPage() {
 
   return (
     <AuthShell
-      title="Create your account"
-      subtitle="Free to join. Get matched to a game this week."
+      title={t("auth.signupTitle")}
+      subtitle={t("auth.signupSubtitle")}
       footer={
         <>
-          Already have an account?{" "}
+          {t("auth.alreadyHaveAccount")}{" "}
           <Link to="/login" className="font-semibold">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </>
       }
@@ -204,7 +211,7 @@ export function SignupPage() {
       {error && <ErrorNote message={error} />}
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Field
-          label="Name"
+          label={t("auth.fieldName")}
           required
           autoFocus
           maxLength={120}
@@ -212,7 +219,7 @@ export function SignupPage() {
           onChange={(e) => setName(e.target.value)}
         />
         <Field
-          label="Email"
+          label={t("auth.fieldEmail")}
           type="email"
           autoComplete="email"
           required
@@ -220,27 +227,27 @@ export function SignupPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
         <Field
-          label="Phone"
+          label={t("auth.fieldPhone")}
           type="tel"
           autoComplete="tel"
           required
           placeholder="+15555550100"
-          hint="Required and unique — teams use it to reach you."
+          hint={t("auth.phoneHint")}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
         <Field
-          label="Password"
+          label={t("auth.fieldPassword")}
           type="password"
           autoComplete="new-password"
           required
           minLength={8}
-          hint="At least 8 characters."
+          hint={t("auth.passwordHint")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
         <Field
-          label="Confirm password"
+          label={t("auth.fieldConfirmPassword")}
           type="password"
           autoComplete="new-password"
           required
@@ -248,7 +255,7 @@ export function SignupPage() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
-        <SubmitButton busy={busy}>Create account</SubmitButton>
+        <SubmitButton busy={busy}>{t("auth.createAccountButton")}</SubmitButton>
       </form>
     </AuthShell>
   );

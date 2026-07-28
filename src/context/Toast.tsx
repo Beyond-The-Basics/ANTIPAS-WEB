@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
-import { ApiError } from "../api/client";
+import { translateApiError } from "../lib/errors";
 
 type ToastKind = "success" | "error";
 
@@ -29,6 +30,7 @@ let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const { t } = useTranslation();
 
   const notify = useCallback((message: string, kind: ToastKind = "success") => {
     const id = nextId++;
@@ -43,17 +45,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         if (successMessage) notify(successMessage, "success");
         return true;
       } catch (err) {
-        const message =
-          err instanceof ApiError
-            ? `${err.status}: ${err.message}`
-            : err instanceof Error
-              ? err.message
-              : "Request failed";
-        notify(message, "error");
+        notify(translateApiError(err, t), "error");
         return false;
       }
     },
-    [notify],
+    [notify, t],
   );
 
   return (

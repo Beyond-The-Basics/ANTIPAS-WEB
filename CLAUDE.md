@@ -69,6 +69,33 @@ Vite + React 18 + TypeScript + Tailwind v3 + react-router v6.
 **Tailwind is pinned to v3.** v4's `@tailwindcss/oxide` requires Node >= 20 and this project targets
 Node 18; on 18 the native binary silently fails to install and the build breaks.
 
+## Multi-language
+
+**Every feature must ship aligned with the multi-language implementation.** A feature is not done
+until its strings exist in all three locales — this is part of building it, not follow-up polish, and
+an English-only screen is an incomplete screen.
+
+- **Three locales, always together**: `src/locales/en.json`, `fr.json`, `ar.json`. Arabic is **Darija
+  in Arabic script** (informal, matching the register already in `ar.json`) — not formal MSA. Add
+  every new key to all three files in the same change that introduces the UI.
+- **No hardcoded user-facing strings.** Everything renders through `t()` (`react-i18next`).
+  Interpolate with `{{named}}` placeholders rather than concatenating translated fragments, and use
+  `Intl.*` (e.g. `ListFormat`, date formatting in `src/lib/format.ts`) for anything where the
+  connective grammar itself is locale-dependent.
+- **RTL is not optional.** Arabic sets `dir="rtl"` on `<html>`, so use Tailwind's *logical*
+  utilities — `ms-`/`me-`/`ps-`/`pe-`/`start-`/`end-`/`text-start`/`text-end` — never the physical
+  `ml-`/`mr-`/`pl-`/`pr-`/`left-`/`right-`/`text-left`/`text-right`. v3 supports these natively.
+- **Enum labels** (`SPORT_LABEL`, `STATUS_LABEL` in `ui.tsx`, `ATHLETIC_TRAITS` in `lib/profile.ts`)
+  resolve through i18n lazily — a `Proxy` for the lookups, getters for the trait list — so call sites
+  read like plain objects while still re-resolving per language. Extend that pattern rather than
+  threading a `t` through every consumer.
+- **Wiring**: `src/i18n.ts` (init), `src/context/Language.tsx` (locale persisted on the `User` via the
+  backend's `locale` field), `src/components/LanguageSwitcher.tsx`, and `src/lib/errors.ts`
+  (`translateApiError` — backend messages are mapped client-side; the API is not localized).
+- **Verify in all three**, not just English: check the key sets match across the locale files, and
+  walk any new screen once in French and once in Arabic to confirm nothing leaks untranslated and RTL
+  doesn't break the layout.
+
 ## Where the design outruns the API
 
 The prototype was drawn against the real schema, but parts of it have no endpoint behind them. These

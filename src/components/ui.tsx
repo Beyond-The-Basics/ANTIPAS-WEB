@@ -3,8 +3,21 @@
 // here they are components so the palette lives in one place.
 
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Sport, TeamRole } from "../api/types";
+import i18n from "../i18n";
+
+/** A live object indexed by key that always resolves through the current i18n language — reads
+ * like a plain lookup object (`SPORT_LABEL[sport]`) at every existing call site, but re-resolves
+ * on each access rather than baking in a translation at import time. Not itself reactive (a plain
+ * property read doesn't subscribe a component to re-render), but every consumer already calls
+ * `useTranslation()` for its own strings, which re-renders it on language change anyway. */
+function labelLookup<K extends string>(namespace: string): Record<K, string> {
+  return new Proxy({} as Record<K, string>, {
+    get: (_target, prop: string) => i18n.t(`${namespace}.${prop}`),
+  });
+}
 
 // --- status pills -------------------------------------------------------------
 
@@ -22,23 +35,22 @@ const PILL_TONE: Record<string, string> = {
   cancelled_by_b: "bg-chip-2 text-chip-ink-2",
 };
 
-/** `cancelled_by_a` reads badly in a pill; the API has no display name for it. */
-export function statusLabel(value: string): string {
-  return value.replace(/_/g, " ");
-}
+export const STATUS_LABEL = labelLookup<string>("status");
 
 export function Pill({ value, label }: { value: string; label?: string }) {
+  const { t } = useTranslation();
   const tone = PILL_TONE[value] ?? "bg-chip-2 text-chip-ink-2";
   return (
     <span
       className={`${tone} whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-bold capitalize`}
     >
-      {label ?? statusLabel(value)}
+      {label ?? t(`status.${value}`)}
     </span>
   );
 }
 
 export function RolePill({ role }: { role: TeamRole | null }) {
+  const { t } = useTranslation();
   const captain = role === "captain";
   return (
     <span
@@ -46,7 +58,7 @@ export function RolePill({ role }: { role: TeamRole | null }) {
         captain ? "bg-brand-tint text-brand-deep" : "bg-chip text-muted"
       } whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-bold capitalize`}
     >
-      {role ?? "—"}
+      {role ? t(`role.${role}`) : "—"}
     </span>
   );
 }
@@ -100,18 +112,26 @@ export function AvatarStack({ names, total }: { names: string[]; total: number }
   );
 }
 
+// Single-letter icon inside the sport badge — kept as abstract initials rather than translated,
+// same idea as a logo mark.
 const SPORT_LETTER: Record<Sport, string> = {
   soccer: "S",
   tennis: "T",
   paddle: "P",
   basketball: "B",
 };
-export const SPORT_LABEL: Record<Sport, string> = {
-  soccer: "Soccer",
-  tennis: "Tennis",
-  paddle: "Paddle",
-  basketball: "Basketball",
+
+/** Sport glyphs for the places that read as a personal choice rather than a data label (the
+ * profile's favourite-sports picker) — warmer than the abstract `SportDot` initials. Paddle has no
+ * emoji of its own; the paddle-bat one is the closest read. */
+export const SPORT_EMOJI: Record<Sport, string> = {
+  soccer: "⚽",
+  tennis: "🎾",
+  paddle: "🏓",
+  basketball: "🏀",
 };
+
+export const SPORT_LABEL = labelLookup<Sport>("sports");
 
 /** Prototype `dot()` — a rounded green square carrying the sport's initial. */
 export function SportDot({ sport, size = 22 }: { sport: Sport; size?: number }) {
@@ -306,5 +326,138 @@ export function RatingDots({
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * Spider/radar plot of a small set of 1..max ratings — the athletic profile's read *and* edit
+ * surface, so it replaces the old row of `RatingDots` rather than decorating it. Every level on
+ * every axis is a hit target when `onChange` is passed, which keeps the ratings editable without
+ * needing a second control alongside the graph.
+ *
+ * Unrated axes plot at the centre (0) so the shape still closes; `null` stays distinct from 1 in
+ * the data, it just has nowhere else to sit on the web.
+ */
+export function RadarChart({
+  axes,
+  max = 5,
+  size = 360,
+  onChange,
+  handleLabel,
+}: {
+  axes: { key: string; label: string; value: number | null }[];
+  max?: number;
+  size?: number;
+  onChange?: (key: string, next: number) => void;
+  /** Accessible name for one level handle, e.g. t("profile.setTraitTo", { trait, level }). */
+  handleLabel?: (trait: string, level: number) => string;
+}) {
+  // Deliberately wider than tall: the left/right axis labels stick out horizontally, and a square
+  // box clips the longer ones (French "Endurance", English "Strength") once the value is appended.
+  const width = size;
+  const height = Math.round(size * 0.7);
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) * 0.285;
+  const count = axes.length;
+  const angleOf = (i: number) => (Math.PI * 2 * i) / count - Math.PI / 2;
+  const pointOf = (i: number, level: number) => {
+    const r = (level / max) * radius;
+    return [cx + Math.cos(angleOf(i)) * r, cy + Math.sin(angleOf(i)) * r] as const;
+  };
+  const polygon = (level: number) =>
+    axes.map((_, i) => pointOf(i, level).join(",")).join(" ");
+
+  const valuePoints = axes.map((a, i) => pointOf(i, a.value ?? 0));
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-auto w-full max-w-[360px]"
+      role="img"
+      aria-label={axes.map((a) => `${a.label}: ${a.value ?? "—"}/${max}`).join(", ")}
+    >
+      {/* rings + spokes */}
+      {Array.from({ length: max }, (_, i) => i + 1).map((level) => (
+        <polygon
+          key={level}
+          points={polygon(level)}
+          className="fill-none stroke-line-2"
+          strokeWidth={1}
+        />
+      ))}
+      {axes.map((a, i) => {
+        const [x, y] = pointOf(i, max);
+        return (
+          <line key={a.key} x1={cx} y1={cy} x2={x} y2={y} className="stroke-line-2" strokeWidth={1} />
+        );
+      })}
+
+      {/* plotted shape */}
+      <polygon
+        points={valuePoints.map((p) => p.join(",")).join(" ")}
+        className="fill-brand/25 stroke-brand"
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+
+      {/* level hit targets — invisible until hovered, so the graph doesn't read as 20 dots */}
+      {onChange &&
+        axes.map((a, i) =>
+          Array.from({ length: max }, (_, l) => l + 1).map((level) => {
+            const [x, y] = pointOf(i, level);
+            return (
+              <circle
+                key={`${a.key}-${level}`}
+                cx={x}
+                cy={y}
+                r={7}
+                role="button"
+                tabIndex={0}
+                aria-label={handleLabel?.(a.label, level) ?? `${a.label} ${level}`}
+                onClick={() => onChange(a.key, level)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onChange(a.key, level);
+                  }
+                }}
+                className="cursor-pointer fill-transparent hover:fill-brand/30 focus:outline-none focus-visible:fill-brand/40"
+              />
+            );
+          }),
+        )}
+
+      {/* current value markers, drawn over the hit targets */}
+      {axes.map((a, i) => {
+        if (a.value == null) return null;
+        const [x, y] = pointOf(i, a.value);
+        return <circle key={a.key} cx={x} cy={y} r={3.5} className="pointer-events-none fill-brand" />;
+      })}
+
+      {/* axis labels, pushed just outside the outer ring */}
+      {axes.map((a, i) => {
+        const angle = angleOf(i);
+        const x = cx + Math.cos(angle) * (radius + 16);
+        const y = cy + Math.sin(angle) * (radius + 16);
+        const cos = Math.cos(angle);
+        const anchor = Math.abs(cos) < 0.2 ? "middle" : cos > 0 ? "start" : "end";
+        // Nudge the top/bottom labels clear of the ring they'd otherwise sit on.
+        const dy = Math.sin(angle) < -0.2 ? "-0.1em" : Math.sin(angle) > 0.2 ? "0.8em" : "0.35em";
+        return (
+          <text
+            key={a.key}
+            x={x}
+            y={y}
+            dy={dy}
+            textAnchor={anchor}
+            className="fill-ink-2 text-[11px] font-semibold"
+          >
+            {a.label}
+            <tspan className="fill-faint"> {a.value ?? "—"}</tspan>
+          </text>
+        );
+      })}
+    </svg>
   );
 }

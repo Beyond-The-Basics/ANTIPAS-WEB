@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -38,19 +39,20 @@ import { COUNTRIES } from "../lib/reference";
 
 type Tab = "members" | "recruiting" | "opponent" | "matches";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "members", label: "Members" },
-  { id: "recruiting", label: "Recruiting" },
-  { id: "opponent", label: "Find opponent" },
-  { id: "matches", label: "Matches" },
-];
-
 export function TeamDetailPage() {
   const { teamId = "" } = useParams();
   const { user: acting } = useActingUser();
   const { run } = useToast();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const { t } = useTranslation();
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "members", label: t("teamDetail.tabs.members") },
+    { id: "recruiting", label: t("teamDetail.tabs.recruiting") },
+    { id: "opponent", label: t("teamDetail.tabs.opponent") },
+    { id: "matches", label: t("teamDetail.tabs.matches") },
+  ];
 
   const tab = (params.get("tab") as Tab) ?? "members";
   const setTab = (t: Tab) => setParams(t === "members" ? {} : { tab: t }, { replace: true });
@@ -117,7 +119,7 @@ export function TeamDetailPage() {
     void reload();
   }, [reload]);
 
-  if (!team) return <Empty>Loading team…</Empty>;
+  if (!team) return <Empty>{t("teamDetail.loading")}</Empty>;
 
   const myRole: TeamRole | null =
     members.find((m) => m.user_id === acting?.id)?.role ?? null;
@@ -134,14 +136,14 @@ export function TeamDetailPage() {
   // The captain can mark the team complete once a lineup type is set — there is no minimum-member
   // gate (unfilled positions just show empty on the lineup). Mirrors team_service.update_team.
   const canComplete = currentGameType !== null;
-  const completeBlockedReason = !currentGameType ? "Pick a lineup type first" : undefined;
+  const completeBlockedReason = !currentGameType ? t("teamDetail.pickLineupFirst") : undefined;
 
   const act = (fn: () => Promise<unknown>, message: string) => run(fn, message).then(reload);
 
   return (
     <>
       <Link to="/teams" className="mb-3.5 inline-block text-[13px] text-muted hover:text-ink">
-        ← Teams
+        {t("teamDetail.backToTeams")}
       </Link>
 
       <div className="mb-1.5 flex items-center justify-between gap-4">
@@ -159,12 +161,12 @@ export function TeamDetailPage() {
                 <Button
                   size="sm"
                   onClick={() =>
-                    act(() => api.patch(`/teams/${team.id}`, { name }), "Team renamed").then(() =>
-                      setRenaming(false),
+                    act(() => api.patch(`/teams/${team.id}`, { name }), t("teamDetail.teamRenamed")).then(
+                      () => setRenaming(false),
                     )
                   }
                 >
-                  Save
+                  {t("teamDetail.save")}
                 </Button>
                 <Button
                   size="sm"
@@ -174,7 +176,7 @@ export function TeamDetailPage() {
                     setRenaming(false);
                   }}
                 >
-                  Cancel
+                  {t("teamDetail.cancel")}
                 </Button>
               </div>
             ) : (
@@ -184,7 +186,7 @@ export function TeamDetailPage() {
               <RolePill role={myRole} />
               <Pill
                 value={team.completed ? "confirmed" : "open"}
-                label={team.completed ? "Completed roster" : "Recruiting"}
+                label={team.completed ? t("teamDetail.completedRoster") : t("teamDetail.recruitingPill")}
               />
             </div>
           </div>
@@ -200,14 +202,14 @@ export function TeamDetailPage() {
                 onClick={() =>
                   act(
                     () => api.patch(`/teams/${team.id}`, { completed: !team.completed }),
-                    team.completed ? "Marked recruiting" : "Marked completed",
+                    team.completed ? t("teamDetail.markedRecruiting") : t("teamDetail.markedCompleted"),
                   )
                 }
               >
-                {team.completed ? "Mark recruiting" : "Mark completed"}
+                {team.completed ? t("teamDetail.markRecruiting") : t("teamDetail.markCompleted")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setRenaming(true)}>
-                Rename
+                {t("teamDetail.rename")}
               </Button>
             </>
           )}
@@ -216,12 +218,12 @@ export function TeamDetailPage() {
               size="sm"
               variant="ghost"
               onClick={() =>
-                run(() => api.post(`/teams/${team.id}/leave`), "Left team").then(() =>
+                run(() => api.post(`/teams/${team.id}/leave`), t("teamDetail.leftTeam")).then(() =>
                   navigate("/teams"),
                 )
               }
             >
-              Leave team
+              {t("teamDetail.leaveTeam")}
             </Button>
           )}
         </div>
@@ -303,6 +305,7 @@ function AboutTeam({
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState(team.description ?? "");
   const [country, setCountry] = useState(team.country);
@@ -312,19 +315,19 @@ function AboutTeam({
     return (
       <Card className="mb-5 flex flex-col gap-3 p-4">
         <div>
-          <Label>Description</Label>
+          <Label>{t("teamDetail.description")}</Label>
           <textarea
             className="field w-full"
             rows={2}
             maxLength={500}
-            placeholder="What's this team about — level, vibe, how often you play…"
+            placeholder={t("teamDetail.descriptionPlaceholder")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
         <div className="flex gap-3">
           <div className="flex-1">
-            <Label>Country</Label>
+            <Label>{t("teamDetail.country")}</Label>
             <select
               className="field w-full"
               value={country}
@@ -341,13 +344,13 @@ function AboutTeam({
             </select>
           </div>
           <div className="flex-1">
-            <Label>City</Label>
+            <Label>{t("teamDetail.city")}</Label>
             <select
               className="field w-full"
               value={city}
               onChange={(e) => setCity(e.target.value)}
             >
-              <option value="">(none)</option>
+              <option value="">{t("common.none")}</option>
               {(isCountry(country) ? CITIES_BY_COUNTRY[country] : []).map((c) => (
                 <option key={c.name} value={c.name}>
                   {c.name}
@@ -367,14 +370,14 @@ function AboutTeam({
                     country,
                     city: city.trim() || null,
                   }),
-                "Team info updated",
+                t("teamDetail.teamInfoUpdated"),
               ).then(() => setEditing(false))
             }
           >
-            Save
+            {t("teamDetail.save")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            Cancel
+            {t("teamDetail.cancel")}
           </Button>
         </div>
       </Card>
@@ -386,13 +389,13 @@ function AboutTeam({
     <Card className="mb-5 flex items-start justify-between gap-3 p-4">
       <div className="min-w-0">
         <p className="text-[13px] text-ink-2">
-          {team.description || <span className="text-faint">No description yet.</span>}
+          {team.description || <span className="text-faint">{t("teamDetail.noDescriptionYet")}</span>}
         </p>
         <p className="mt-1 text-[12px] text-muted">{location}</p>
       </div>
       {manages && (
         <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-          Edit
+          {t("teamDetail.edit")}
         </Button>
       )}
     </Card>
@@ -450,6 +453,7 @@ function LineupSection({
   userName: (id: string) => string;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [picking, setPicking] = useState(false);
 
   return (
@@ -464,7 +468,7 @@ function LineupSection({
                 onClick={() =>
                   act(
                     () => api.patch(`/teams/${team.id}`, { game_type_id: g.id }),
-                    `Lineup set to ${g.label}`,
+                    t("teamDetail.lineupSetTo", { label: g.label }),
                   ).then(() => setPicking(false))
                 }
                 className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${
@@ -478,19 +482,17 @@ function LineupSection({
             ))}
           {currentGameType && !picking && (
             <Button size="sm" variant="ghost" onClick={() => setPicking(true)}>
-              Change lineup
+              {t("teamDetail.changeLineup")}
             </Button>
           )}
           {picking && currentGameType && (
             <Button size="sm" variant="ghost" onClick={() => setPicking(false)}>
-              Done
+              {t("teamDetail.done")}
             </Button>
           )}
         </div>
       )}
-      {!currentGameType && !isCaptain && (
-        <Empty>No lineup type set yet — the captain sets it.</Empty>
-      )}
+      {!currentGameType && !isCaptain && <Empty>{t("teamDetail.noLineupYet")}</Empty>}
       <LineupCard
         team={team}
         members={members}
@@ -498,7 +500,7 @@ function LineupSection({
         userName={userName}
         editable={isCaptain}
         onReorder={(assignments) =>
-          act(() => api.put(`/teams/${team.id}/lineup`, { assignments }), "Lineup updated")
+          act(() => api.put(`/teams/${team.id}/lineup`, { assignments }), t("teamDetail.lineupUpdated"))
         }
       />
     </div>
@@ -524,6 +526,7 @@ function MembersTab({
   sportGameTypes: GameType[];
   currentGameType: GameType | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div>
       <LineupSection
@@ -536,9 +539,9 @@ function MembersTab({
         act={act}
       />
 
-      <SectionLabel>Roster</SectionLabel>
+      <SectionLabel>{t("teamDetail.roster")}</SectionLabel>
       {members.length === 0 ? (
-        <Empty>No active members.</Empty>
+        <Empty>{t("teamDetail.noActiveMembers")}</Empty>
       ) : (
         <div className="flex flex-col gap-2">
           {members.map((m) => {
@@ -556,7 +559,7 @@ function MembersTab({
                           api.patch(`/teams/${team.id}/members/${m.user_id}/jersey-number`, {
                             jersey_number: next,
                           }),
-                        "Jersey number updated",
+                        t("teamDetail.jerseyNumberUpdated"),
                       )
                     }
                   />
@@ -573,11 +576,11 @@ function MembersTab({
                         api.patch(`/teams/${team.id}/members/${m.user_id}/role`, {
                           role: (m.role === "admin" ? "member" : "admin") as TeamRole,
                         }),
-                      "Role updated",
+                      t("teamDetail.roleUpdated"),
                     )
                   }
                 >
-                  {m.role === "admin" ? "Demote to member" : "Promote to admin"}
+                  {m.role === "admin" ? t("teamDetail.demoteToMember") : t("teamDetail.promoteToAdmin")}
                 </Button>
                 {isCaptain && (
                   <Button
@@ -589,21 +592,21 @@ function MembersTab({
                           api.post(`/teams/${team.id}/transfer-captain`, {
                             new_captain_user_id: m.user_id,
                           }),
-                        "Captaincy transferred",
+                        t("teamDetail.captaincyTransferred"),
                       )
                     }
                   >
-                    Make captain
+                    {t("teamDetail.makeCaptain")}
                   </Button>
                 )}
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    act(() => api.del(`/teams/${team.id}/members/${m.user_id}`), "Member removed")
+                    act(() => api.del(`/teams/${team.id}/members/${m.user_id}`), t("teamDetail.memberRemoved"))
                   }
                 >
-                  Remove
+                  {t("teamDetail.remove")}
                 </Button>
               </>
             )}
@@ -637,6 +640,7 @@ function RecruitingTab({
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   reload: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [country, setCountry] = useState<Country>(
     isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
   );
@@ -651,9 +655,9 @@ function RecruitingTab({
       {searches.length === 0 ? (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 px-[18px] py-4">
           <div>
-            <div className="text-sm font-semibold">No open roster search</div>
+            <div className="text-sm font-semibold">{t("teamDetail.noOpenRosterSearch")}</div>
             <div className="mt-0.5 text-[12.5px] text-muted">
-              Publish one so players can find and apply to this team.
+              {t("teamDetail.publishRosterSearchHint")}
             </div>
           </div>
           {manages &&
@@ -678,7 +682,7 @@ function RecruitingTab({
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                 >
-                  <option value="">Select a city…</option>
+                  <option value="">{t("teamDetail.selectCity")}</option>
                   {CITIES_BY_COUNTRY[country].map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name}
@@ -691,21 +695,21 @@ function RecruitingTab({
                   onClick={() =>
                     act(
                       () => api.post(`/teams/${team.id}/roster-searches`, { city, country }),
-                      "Roster search published",
+                      t("teamDetail.rosterSearchPublished"),
                     ).then(() => {
                       setPublishing(false);
                     })
                   }
                 >
-                  Publish
+                  {t("teamDetail.publish")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setPublishing(false)}>
-                  Cancel
+                  {t("teamDetail.cancel")}
                 </Button>
               </div>
             ) : (
               <Button size="sm" onClick={() => setPublishing(true)}>
-                Publish roster search
+                {t("teamDetail.publishRosterSearch")}
               </Button>
             ))}
         </Card>
@@ -714,10 +718,10 @@ function RecruitingTab({
           <Card key={s.id} className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
             <div className="min-w-0">
               <div className="text-sm font-semibold">
-                Roster search · {s.city} <ShortId id={s.id} />
+                {t("teamDetail.rosterSearchLabel", { city: s.city })} <ShortId id={s.id} />
               </div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                Costs 1 credit to publish · expires in {expiresLabel(s.expires_at)}
+                {t("teamDetail.costsCreditExpiresIn", { time: expiresLabel(s.expires_at, t) })}
               </div>
             </div>
             <div className="flex flex-none items-center gap-2">
@@ -726,9 +730,11 @@ function RecruitingTab({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => act(() => api.post(`/roster-searches/${s.id}/close`), "Search closed")}
+                  onClick={() =>
+                    act(() => api.post(`/roster-searches/${s.id}/close`), t("teamDetail.searchClosed"))
+                  }
                 >
-                  Close
+                  {t("teamDetail.close")}
                 </Button>
               )}
             </div>
@@ -736,9 +742,9 @@ function RecruitingTab({
         ))
       )}
 
-      <SectionLabel>Applicants</SectionLabel>
+      <SectionLabel>{t("teamDetail.applicants")}</SectionLabel>
       {apps.length === 0 ? (
-        <Empty>No roster applications yet.</Empty>
+        <Empty>{t("teamDetail.noRosterApplications")}</Empty>
       ) : (
         <div className="mb-6 flex flex-col gap-2.5">
           {apps.map((a) => (
@@ -746,7 +752,9 @@ function RecruitingTab({
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-semibold">{userName(a.user_id)}</div>
                 <div className="mt-0.5 text-xs text-muted">
-                  {a.direction === "player_applied" ? "applied to join" : "invited by team"}
+                  {a.direction === "player_applied"
+                    ? t("teamDetail.appliedToJoin")
+                    : t("teamDetail.invitedByTeam")}
                 </div>
               </div>
               <Pill value={a.status} />
@@ -756,21 +764,21 @@ function RecruitingTab({
                     size="sm"
                     variant="ghost"
                     onClick={() =>
-                      act(() => api.post(`/roster-applications/${a.id}/decline`), "Declined")
+                      act(() => api.post(`/roster-applications/${a.id}/decline`), t("teamDetail.declined"))
                     }
                   >
-                    Decline
+                    {t("teamDetail.decline")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() =>
                       act(
                         () => api.post(`/roster-applications/${a.id}/accept`),
-                        "Accepted — member added",
+                        t("teamDetail.acceptedMemberAdded"),
                       )
                     }
                   >
-                    Accept
+                    {t("teamDetail.accept")}
                   </Button>
                 </>
               )}
@@ -779,10 +787,13 @@ function RecruitingTab({
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    act(() => api.post(`/roster-applications/${a.id}/withdraw`), "Invite withdrawn")
+                    act(
+                      () => api.post(`/roster-applications/${a.id}/withdraw`),
+                      t("teamDetail.inviteWithdrawn"),
+                    )
                   }
                 >
-                  Withdraw invite
+                  {t("teamDetail.withdrawInvite")}
                 </Button>
               )}
             </Card>
@@ -800,12 +811,12 @@ function RecruitingTab({
               onInvited={() => reload()}
             />
             <Button variant="ghost" className="mt-2.5" onClick={() => setInviting(false)}>
-              Done
+              {t("teamDetail.done")}
             </Button>
           </div>
         ) : (
           <Button variant="ghost" onClick={() => setInviting(true)}>
-            + Invite a player
+            {t("teamDetail.invitePlayer")}
           </Button>
         ))}
     </div>
@@ -833,6 +844,8 @@ function OpponentTab({
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
   openNegotiation: (app: OpponentApplication) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const [open, setOpen] = useState(false);
   const [country, setCountry] = useState<Country>(
     isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
@@ -846,8 +859,9 @@ function OpponentTab({
   if (!team.completed) {
     return (
       <div className="rounded-tile border border-dashed border-line p-6 text-[13.5px] leading-relaxed text-muted">
-        Mark the team <strong className="text-ink">completed</strong> under Members before you can
-        publish an opponent search — a full roster is required to challenge another team.
+        {t("teamDetail.markCompletedPre")}{" "}
+        <strong className="text-ink">{t("teamDetail.completedWord")}</strong>{" "}
+        {t("teamDetail.markCompletedPost")}
       </div>
     );
   }
@@ -863,7 +877,7 @@ function OpponentTab({
           pitch,
           date: new Date(date).toISOString(),
         }),
-      "Opponent search published",
+      t("teamDetail.opponentSearchPublished"),
     ).then(() => {
       setPitch("");
       setDate("");
@@ -877,23 +891,27 @@ function OpponentTab({
         <Card className="mb-5 px-[18px] py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold">No open opponent search</div>
+              <div className="text-sm font-semibold">{t("teamDetail.noOpenOpponentSearch")}</div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                These are your opening terms — the responding team can chat to renegotiate the
-                date, time and pitch before you both agree.
-                {currentGameType && <> Format: <strong className="text-ink">{currentGameType.label}</strong>, from your team's lineup.</>}
+                {t("teamDetail.publishOpponentSearchHint")}
+                {currentGameType && (
+                  <>
+                    {" "}
+                    {t("teamDetail.formatFromLineup", { label: currentGameType.label })}
+                  </>
+                )}
               </div>
             </div>
             {manages && !open && (
               <Button size="sm" onClick={() => setOpen(true)}>
-                Publish opponent search
+                {t("teamDetail.publishOpponentSearch")}
               </Button>
             )}
           </div>
           {open && (
             <div className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line-2 pt-4">
               <div>
-                <Label>Country</Label>
+                <Label>{t("teamDetail.country")}</Label>
                 <select
                   className="field !text-[13px]"
                   value={country}
@@ -910,13 +928,13 @@ function OpponentTab({
                 </select>
               </div>
               <div>
-                <Label>City</Label>
+                <Label>{t("teamDetail.city")}</Label>
                 <select
                   className="field !text-[13px]"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                 >
-                  <option value="">Select…</option>
+                  <option value="">{t("teamDetail.select")}</option>
                   {CITIES_BY_COUNTRY[country].map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name}
@@ -925,16 +943,16 @@ function OpponentTab({
                 </select>
               </div>
               <div>
-                <Label>Pitch</Label>
+                <Label>{t("teamDetail.pitch")}</Label>
                 <input
                   className="field w-[150px]"
-                  placeholder="Venue name"
+                  placeholder={t("teamDetail.pitchPlaceholder")}
                   value={pitch}
                   onChange={(e) => setPitch(e.target.value)}
                 />
               </div>
               <div>
-                <Label>Date &amp; time</Label>
+                <Label>{t("teamDetail.dateTime")}</Label>
                 <input
                   type="datetime-local"
                   className="field"
@@ -943,10 +961,10 @@ function OpponentTab({
                 />
               </div>
               <Button disabled={!city || !pitch || !date} onClick={publish}>
-                Publish
+                {t("teamDetail.publish")}
               </Button>
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
+                {t("teamDetail.cancel")}
               </Button>
             </div>
           )}
@@ -956,10 +974,10 @@ function OpponentTab({
           <Card key={s.id} className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
             <div className="min-w-0">
               <div className="text-sm font-semibold">
-                {dateLabel(s.date)} · {s.city} · {s.pitch}
+                {dateLabel(s.date, language)} · {s.city} · {s.pitch}
               </div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                Costs 1 credit to publish · expires in {expiresLabel(s.expires_at)}
+                {t("teamDetail.costsCreditExpiresIn", { time: expiresLabel(s.expires_at, t) })}
               </div>
             </div>
             <div className="flex flex-none items-center gap-2">
@@ -969,10 +987,10 @@ function OpponentTab({
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    act(() => api.post(`/opponent-searches/${s.id}/withdraw`), "Withdrawn")
+                    act(() => api.post(`/opponent-searches/${s.id}/withdraw`), t("teamDetail.withdrawn"))
                   }
                 >
-                  Withdraw
+                  {t("teamDetail.withdraw")}
                 </Button>
               )}
             </div>
@@ -980,7 +998,7 @@ function OpponentTab({
         ))
       )}
 
-      <SectionLabel>Responding teams</SectionLabel>
+      <SectionLabel>{t("teamDetail.respondingTeams")}</SectionLabel>
       <ResponderList
         searches={searches}
         teamName={teamName}
@@ -990,17 +1008,20 @@ function OpponentTab({
 
       {apps.length > 0 && (
         <div className="mt-8">
-          <SectionLabel>This team's challenges to others</SectionLabel>
+          <SectionLabel>{t("teamDetail.challengesToOthers")}</SectionLabel>
           <div className="flex flex-col gap-2.5">
             {apps.map((a) => (
               <Card key={a.id} className="flex items-center gap-3 px-4 py-3.5">
                 <div className="flex-1 text-[13.5px] font-semibold">
-                  Challenge <ShortId id={a.opponent_search_id} />
+                  {t("teamDetail.challengeLabel")} <ShortId id={a.opponent_search_id} />
                 </div>
-                <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
+                <Pill
+                  value={a.status}
+                  label={a.status === "accepted" ? t("teamDetail.negotiating") : undefined}
+                />
                 {a.status === "accepted" && (
                   <Button size="sm" onClick={() => openNegotiation(a)}>
-                    Open chat
+                    {t("teamDetail.openChat")}
                   </Button>
                 )}
                 {manages && a.status === "pending" && (
@@ -1008,10 +1029,10 @@ function OpponentTab({
                     size="sm"
                     variant="ghost"
                     onClick={() =>
-                      act(() => api.post(`/opponent-applications/${a.id}/withdraw`), "Withdrawn")
+                      act(() => api.post(`/opponent-applications/${a.id}/withdraw`), t("teamDetail.withdrawn"))
                     }
                   >
-                    Withdraw
+                    {t("teamDetail.withdraw")}
                   </Button>
                 )}
               </Card>
@@ -1036,6 +1057,7 @@ function ResponderList({
   openNegotiation: (app: OpponentApplication) => void;
 }) {
   const { run } = useToast();
+  const { t } = useTranslation();
   const [bySearch, setBySearch] = useState<Record<string, OpponentApplication[]>>({});
 
   const load = useCallback(async () => {
@@ -1055,7 +1077,7 @@ function ResponderList({
   }, [load]);
 
   const all = Object.values(bySearch).flat();
-  if (all.length === 0) return <Empty>No teams have responded yet.</Empty>;
+  if (all.length === 0) return <Empty>{t("teamDetail.noTeamsResponded")}</Empty>;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -1064,7 +1086,10 @@ function ResponderList({
           <div className="flex-1 text-[13.5px] font-semibold">
             {teamName(a.responding_team_id)}
           </div>
-          <Pill value={a.status} label={a.status === "accepted" ? "negotiating" : undefined} />
+          <Pill
+            value={a.status}
+            label={a.status === "accepted" ? t("teamDetail.negotiating") : undefined}
+          />
           {manages && a.status === "pending" && (
             <Button
               size="sm"
@@ -1075,15 +1100,15 @@ function ResponderList({
                   );
                   await load();
                   openNegotiation(accepted);
-                }, "Challenge accepted — negotiate the details")
+                }, t("teamDetail.challengeAccepted"))
               }
             >
-              Accept challenge
+              {t("teamDetail.acceptChallenge")}
             </Button>
           )}
           {a.status === "accepted" && (
             <Button size="sm" onClick={() => openNegotiation(a)}>
-              Open chat
+              {t("teamDetail.openChat")}
             </Button>
           )}
         </Card>
@@ -1104,9 +1129,11 @@ function MatchesTab({
   teamName: (id: string) => string;
 }) {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
 
   if (matches.length === 0) {
-    return <Empty>No matches yet — confirm a responding team to create one.</Empty>;
+    return <Empty>{t("teamDetail.noMatchesYet")}</Empty>;
   }
 
   return (
@@ -1120,9 +1147,11 @@ function MatchesTab({
             onClick={() => navigate(`/matches/${m.id}`)}
           >
             <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-semibold">vs {teamName(opponentId)}</div>
+              <div className="text-[13.5px] font-semibold">
+                {t("teamDetail.vsTeam", { team: teamName(opponentId) })}
+              </div>
               <div className="mt-0.5 text-xs text-muted">
-                {dateLabel(m.date)} · {m.city}
+                {dateLabel(m.date, language)} · {m.city}
               </div>
             </div>
             <Pill value={m.status} />
