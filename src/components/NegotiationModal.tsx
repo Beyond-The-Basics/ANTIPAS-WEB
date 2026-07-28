@@ -14,6 +14,7 @@ import type {
   NegotiationProposal,
   OpponentApplication,
   OpponentSearch,
+  Pitch,
 } from "../api/types";
 import { useActingUser } from "../context/ActingUser";
 import { useToast } from "../context/Toast";
@@ -102,6 +103,7 @@ export function NegotiationModal({
   const [proposedPitch, setProposedPitch] = useState(application.proposed_pitch);
   const [proposedPitchAddress, setProposedPitchAddress] = useState(application.proposed_pitch_address);
   const [proposedBy, setProposedBy] = useState(application.proposed_by_team_id);
+  const [proposedBookedBy, setProposedBookedBy] = useState(application.proposed_booked_by_team_id);
 
   const [editing, setEditing] = useState(false);
   const [formDate, setFormDate] = useState("");
@@ -109,6 +111,13 @@ export function NegotiationModal({
   const [formEndTime, setFormEndTime] = useState("");
   const [formPitch, setFormPitch] = useState("");
   const [formPitchAddress, setFormPitchAddress] = useState("");
+  const [formBookedBy, setFormBookedBy] = useState<string | null>(null);
+
+  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const [addingPitch, setAddingPitch] = useState(false);
+  const [newPitchName, setNewPitchName] = useState("");
+  const [newPitchCity, setNewPitchCity] = useState("");
+  const [newPitchPrice, setNewPitchPrice] = useState("");
 
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<NegotiationMessage[]>([]);
@@ -118,12 +127,37 @@ export function NegotiationModal({
 
   const appId = application.id;
 
+  /** The single source of truth for the "current offer" shown outside edit mode — a plain REST
+   * fetch, so it stays correct even if the WebSocket push (below) drops for one side and never
+   * reconnects, instead of leaving that side's screen stale until the modal is reopened. Only
+   * applies the latest snapshot when it's actually new, so polling doesn't yank someone out of an
+   * in-progress edit every few seconds. */
   const refreshProposals = useCallback(() => {
     void api
       .get<NegotiationProposal[]>(`/opponent-applications/${appId}/proposals`)
-      .then(setProposals)
+      .then((list) => {
+        setProposals((prev) => {
+          const latest = list[list.length - 1];
+          const prevLatest = prev[prev.length - 1];
+          if (latest && latest.id !== prevLatest?.id) {
+            setProposedDate(latest.date);
+            setProposedEndDate(latest.end_date);
+            setProposedPitch(latest.pitch);
+            setProposedPitchAddress(latest.pitch_address);
+            setProposedBy(latest.proposed_by_team_id);
+            setProposedBookedBy(latest.booked_by_team_id);
+            setEditing(false);
+          }
+          return list;
+        });
+      })
       .catch(() => {});
   }, [appId]);
+
+  useEffect(() => {
+    const interval = setInterval(refreshProposals, 5000);
+    return () => clearInterval(interval);
+  }, [refreshProposals]);
 
   useEffect(() => {
     void api
@@ -136,41 +170,58 @@ export function NegotiationModal({
       .then(setMessages)
       .catch(() => setMessages([]));
 
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(
-      `${proto}://${location.host}/api/v1/ws/negotiations/${appId}?user_id=${getActingUserId() ?? ""}`,
-    );
-    wsRef.current = ws;
-    ws.onmessage = (e) => {
-      const evt = JSON.parse(e.data);
-      if (evt.type === "message") {
-        setMessages((prev) =>
-          prev.some((m) => m.id === evt.id)
-            ? prev
-            : [
-                ...prev,
-                {
-                  id: evt.id,
-                  opponent_application_id: appId,
-                  sender_user_id: evt.sender_user_id,
-                  body: evt.body,
-                  created_at: evt.created_at,
-                },
-              ],
-        );
-      } else if (evt.type === "proposal") {
-        setProposedDate(evt.proposed_date);
-        setProposedEndDate(evt.proposed_end_date);
-        setProposedPitch(evt.proposed_pitch);
-        setProposedPitchAddress(evt.proposed_pitch_address);
-        setProposedBy(evt.proposed_by_team_id);
-        setEditing(false);
-        refreshProposals();
-      } else if (evt.type === "agreed") {
-        void api.get<Match>(`/matches/${evt.match_id}`).then(onAgreed);
-      }
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      const ws = new WebSocket(
+        `${proto}://${location.host}/api/v1/ws/negotiations/${appId}?user_id=${getActingUserId() ?? ""}`,
+      );
+      wsRef.current = ws;
+      ws.onmessage = (e) => {
+        const evt = JSON.parse(e.data);
+        if (evt.type === "message") {
+          setMessages((prev) =>
+            prev.some((m) => m.id === evt.id)
+              ? prev
+              : [
+                  ...prev,
+                  {
+                    id: evt.id,
+                    opponent_application_id: appId,
+                    sender_user_id: evt.sender_user_id,
+                    body: evt.body,
+                    created_at: evt.created_at,
+                  },
+                ],
+          );
+        } else if (evt.type === "proposal") {
+          setProposedDate(evt.proposed_date);
+          setProposedEndDate(evt.proposed_end_date);
+          setProposedPitch(evt.proposed_pitch);
+          setProposedPitchAddress(evt.proposed_pitch_address);
+          setProposedBy(evt.proposed_by_team_id);
+          setProposedBookedBy(evt.proposed_booked_by_team_id);
+          setEditing(false);
+          refreshProposals();
+        } else if (evt.type === "agreed") {
+          void api.get<Match>(`/matches/${evt.match_id}`).then(onAgreed);
+        }
+      };
+      ws.onclose = () => {
+        // A dropped connection (backend restart, brief network blip) would otherwise leave this
+        // negotiation silently non-live until the modal is closed and reopened — reconnect instead.
+        if (!cancelled) reconnectTimer = setTimeout(connect, 2000);
+      };
     };
-    return () => ws.close();
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appId]);
 
@@ -195,25 +246,64 @@ export function NegotiationModal({
     setFormEndTime(endTime);
     setFormPitch(proposedPitch ?? "");
     setFormPitchAddress(proposedPitchAddress ?? "");
+    setFormBookedBy(proposedBookedBy);
+    setAddingPitch(false);
     setEditing(true);
+    void api
+      .get<Pitch[]>(`/opponent-applications/${appId}/pitches`)
+      .then(setPitches)
+      .catch(() => setPitches([]));
+  };
+
+  const selectPitch = (pitch: Pitch) => {
+    setFormPitch(pitch.name);
+    setFormPitchAddress(pitch.city);
+    setAddingPitch(false);
+  };
+
+  const openAddPitch = () => {
+    setNewPitchName("");
+    setNewPitchCity("");
+    setNewPitchPrice("");
+    setAddingPitch(true);
+  };
+
+  const submitAddPitch = () => {
+    const name = newPitchName.trim();
+    const city = newPitchCity.trim();
+    if (!name || !city) return;
+    void run(async () => {
+      const pitch = await api.post<Pitch>(`/teams/${myTeamId}/pitches`, {
+        name,
+        city,
+        price_per_hour: newPitchPrice.trim() ? Number(newPitchPrice) : null,
+        is_neutral: false,
+      });
+      setPitches((prev) => [...prev, pitch]);
+      setFormPitch(pitch.name);
+      setFormPitchAddress(pitch.city);
+      setAddingPitch(false);
+    }, t("negotiation.pitchAdded"));
   };
 
   const submitCounter = () => {
     const date = combineLocal(formDate, formStartTime);
     const endDate = formEndTime ? combineLocal(formDate, formEndTime) : null;
-    if (!date || !formPitch.trim()) return;
+    if (!date || !formPitch.trim() || !formBookedBy) return;
     void run(async () => {
       const updated = await api.post<OpponentApplication>(`/opponent-applications/${appId}/propose`, {
         date,
         end_date: endDate,
         pitch: formPitch.trim(),
         pitch_address: formPitchAddress.trim() || null,
+        booked_by_team_id: formBookedBy,
       });
       setProposedDate(updated.proposed_date);
       setProposedEndDate(updated.proposed_end_date);
       setProposedPitch(updated.proposed_pitch);
       setProposedPitchAddress(updated.proposed_pitch_address);
       setProposedBy(updated.proposed_by_team_id);
+      setProposedBookedBy(updated.proposed_booked_by_team_id);
       refreshProposals();
       setEditing(false);
     }, t("negotiation.counterOfferSent"));
@@ -237,6 +327,25 @@ export function NegotiationModal({
   const proposedByMe = proposedBy === myTeamId;
 
   const historyDesc = [...proposals].reverse();
+
+  const otherTeamId = myTeamId === homeId ? awayId : homeId;
+  const currentDateSplit = splitLocal(proposedDate);
+  const currentEndSplit = splitLocal(proposedEndDate);
+  const dateEdited = editing && formDate !== currentDateSplit.date;
+  const timeEdited = editing && (formStartTime !== currentDateSplit.time || formEndTime !== currentEndSplit.time);
+  const pitchEdited =
+    editing && (formPitch !== (proposedPitch ?? "") || formPitchAddress !== (proposedPitchAddress ?? ""));
+  const bookingEdited = editing && formBookedBy !== proposedBookedBy;
+  const changedFieldLabels = [
+    dateEdited && t("negotiation.date"),
+    timeEdited && t("negotiation.time"),
+    pitchEdited && t("negotiation.pitch"),
+    bookingEdited && t("negotiation.whoBooksThePitch"),
+  ].filter((v): v is string => !!v);
+  const changedFieldsText =
+    changedFieldLabels.length > 0
+      ? new Intl.ListFormat(language, { style: "long", type: "conjunction" }).format(changedFieldLabels)
+      : "";
 
   return (
     <div
@@ -316,51 +425,208 @@ export function NegotiationModal({
                   onEdit={startEdit}
                   editLabel={t("negotiation.edit")}
                 />
+                <OfferRow
+                  label={t("negotiation.whoBooksThePitch")}
+                  icon="🏟️"
+                  value={
+                    proposedBookedBy === null
+                      ? "—"
+                      : proposedBookedBy === myTeamId
+                        ? t("negotiation.weBook")
+                        : t("negotiation.theyBook")
+                  }
+                  onEdit={startEdit}
+                  editLabel={t("negotiation.edit")}
+                />
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <div>
-                  <SectionLabel>{t("negotiation.date")}</SectionLabel>
-                  <input
-                    type="date"
-                    className="field w-full"
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                  />
+                <div className="flex items-start justify-between gap-3 rounded-tile bg-brand-deep px-4 py-3 text-white">
+                  <div>
+                    <div className="text-[14.5px] font-bold">{t("negotiation.sendCounterOfferTitle")}</div>
+                    <div className="mt-0.5 text-[12px] text-white/80">
+                      {t("negotiation.sendCounterOfferSubtitle")}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="flex-none text-lg leading-none text-white/80 hover:text-white"
+                    onClick={onClose}
+                    aria-label={t("negotiation.cancel")}
+                  >
+                    ×
+                  </button>
                 </div>
-                <div>
-                  <SectionLabel>{t("negotiation.time")}</SectionLabel>
-                  <div className="flex items-center gap-2">
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div
+                    className={`min-w-0 rounded-tile border p-2.5 ${dateEdited ? "border-brand-deep bg-brand-tint/30" : "border-line"}`}
+                  >
+                    <SectionLabel>
+                      {t("negotiation.date")}
+                      {dateEdited && <EditedBadge />}
+                    </SectionLabel>
                     <input
-                      type="time"
-                      className="field flex-1"
-                      value={formStartTime}
-                      onChange={(e) => setFormStartTime(e.target.value)}
-                    />
-                    <span className="text-muted">–</span>
-                    <input
-                      type="time"
-                      className="field flex-1"
-                      value={formEndTime}
-                      onChange={(e) => setFormEndTime(e.target.value)}
+                      type="date"
+                      className="field w-full"
+                      value={formDate}
+                      onChange={(e) => setFormDate(e.target.value)}
                     />
                   </div>
+                  <div
+                    className={`min-w-0 rounded-tile border p-2.5 ${timeEdited ? "border-brand-deep bg-brand-tint/30" : "border-line"}`}
+                  >
+                    <SectionLabel>
+                      {t("negotiation.time")}
+                      {timeEdited && <EditedBadge />}
+                    </SectionLabel>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <input
+                        type="time"
+                        className="field min-w-0 flex-1"
+                        value={formStartTime}
+                        onChange={(e) => setFormStartTime(e.target.value)}
+                      />
+                      <span className="flex-none text-muted">–</span>
+                      <input
+                        type="time"
+                        className="field min-w-0 flex-1"
+                        value={formEndTime}
+                        onChange={(e) => setFormEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <SectionLabel>{t("negotiation.pitch")}</SectionLabel>
-                  <input
-                    className="field mb-2 w-full"
-                    placeholder={t("negotiation.venueName")}
-                    value={formPitch}
-                    onChange={(e) => setFormPitch(e.target.value)}
-                  />
-                  <input
-                    className="field w-full"
-                    placeholder={t("negotiation.addressOptional")}
-                    value={formPitchAddress}
-                    onChange={(e) => setFormPitchAddress(e.target.value)}
-                  />
+
+                <div
+                  className={`rounded-tile border p-2.5 ${pitchEdited ? "border-brand-deep bg-brand-tint/30" : "border-line"}`}
+                >
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <SectionLabel>
+                      {t("negotiation.pitch")}
+                      {pitchEdited && <EditedBadge />}
+                    </SectionLabel>
+                    <button
+                      type="button"
+                      className="text-[12px] font-bold text-brand hover:text-brand-dark"
+                      onClick={openAddPitch}
+                    >
+                      {t("negotiation.addPitch")}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {pitches.map((pitch) => {
+                      const selected = formPitch === pitch.name && formPitchAddress === pitch.city;
+                      const ownershipLabel = pitch.is_neutral
+                        ? t("negotiation.neutralForBoth")
+                        : pitch.team_id === myTeamId
+                          ? t("negotiation.yourCity")
+                          : t("negotiation.theirCity");
+                      return (
+                        <button
+                          key={pitch.id}
+                          type="button"
+                          onClick={() => selectPitch(pitch)}
+                          className={`rounded-tile border px-3.5 py-2.5 text-start ${
+                            selected ? "border-brand bg-brand-tint/40" : "border-line hover:bg-canvas"
+                          }`}
+                        >
+                          <div className="text-[13.5px] font-bold text-ink">{pitch.name}</div>
+                          <div className="text-[12px] text-muted">
+                            {pitch.city} · {ownershipLabel}
+                            {pitch.price_per_hour != null && (
+                              <> · {t("negotiation.pricePerHour", { price: pitch.price_per_hour })}</>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={openAddPitch}
+                      className="rounded-tile border border-dashed border-line px-3.5 py-2.5 text-start text-[13px] font-semibold text-muted hover:bg-canvas"
+                    >
+                      {t("negotiation.notListed")}
+                    </button>
+                    {addingPitch && (
+                      <div className="flex flex-col gap-2 rounded-tile border border-line bg-canvas px-3.5 py-3">
+                        <SectionLabel>{t("negotiation.addPitchTitle")}</SectionLabel>
+                        <input
+                          className="field w-full"
+                          placeholder={t("negotiation.addPitchNamePlaceholder")}
+                          value={newPitchName}
+                          onChange={(e) => setNewPitchName(e.target.value)}
+                        />
+                        <input
+                          className="field w-full"
+                          placeholder={t("negotiation.addPitchCityPlaceholder")}
+                          value={newPitchCity}
+                          onChange={(e) => setNewPitchCity(e.target.value)}
+                        />
+                        <input
+                          className="field w-full"
+                          type="number"
+                          min={0}
+                          placeholder={t("negotiation.addPitchPricePlaceholder")}
+                          value={newPitchPrice}
+                          onChange={(e) => setNewPitchPrice(e.target.value)}
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" className="flex-1" onClick={() => setAddingPitch(false)}>
+                            {t("negotiation.cancel")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={submitAddPitch}
+                            disabled={!newPitchName.trim() || !newPitchCity.trim()}
+                          >
+                            {t("negotiation.addPitchSubmit")}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                <div
+                  className={`rounded-tile border p-2.5 ${bookingEdited ? "border-brand-deep bg-brand-tint/30" : "border-line"}`}
+                >
+                  <SectionLabel>
+                    {t("negotiation.whoBooksThePitch")}
+                    {bookingEdited && <EditedBadge />}
+                  </SectionLabel>
+                  <div className="flex gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormBookedBy(myTeamId)}
+                      className={`flex-1 rounded-cta border px-4 py-2.5 text-[13px] font-bold transition-colors ${
+                        formBookedBy === myTeamId
+                          ? "border-brand bg-brand-tint text-brand-deep"
+                          : "border-line bg-white text-ink hover:bg-canvas"
+                      }`}
+                    >
+                      {t("negotiation.weBook")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormBookedBy(otherTeamId)}
+                      className={`flex-1 rounded-cta border px-4 py-2.5 text-[13px] font-bold transition-colors ${
+                        formBookedBy === otherTeamId
+                          ? "border-brand bg-brand-tint text-brand-deep"
+                          : "border-line bg-white text-ink hover:bg-canvas"
+                      }`}
+                    >
+                      {t("negotiation.theyBook")}
+                    </button>
+                  </div>
+                </div>
+
+                {changedFieldsText && (
+                  <div className="rounded-tile border border-brand/30 bg-brand-tint/40 px-3.5 py-2.5 text-[12.5px] text-brand-deep">
+                    {t("negotiation.changingFields", { fields: changedFieldsText })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -452,12 +718,12 @@ export function NegotiationModal({
           {editing ? (
             <>
               <Button variant="ghost" className="flex-1" onClick={() => setEditing(false)}>
-                {t("negotiation.cancel")}
+                {t("negotiation.back")}
               </Button>
               <Button
                 className="flex-[2] font-bold"
                 onClick={submitCounter}
-                disabled={!formDate || !formStartTime || !formPitch.trim()}
+                disabled={!formDate || !formStartTime || !formPitch.trim() || !formBookedBy}
               >
                 {t("negotiation.sendCounterOffer")}
               </Button>
@@ -475,6 +741,15 @@ export function NegotiationModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function EditedBadge() {
+  const { t } = useTranslation();
+  return (
+    <span className="ms-1.5 rounded-full bg-brand-tint px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-brand-deep">
+      · {t("negotiation.edited")}
+    </span>
   );
 }
 

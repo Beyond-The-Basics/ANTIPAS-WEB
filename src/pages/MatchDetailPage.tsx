@@ -130,6 +130,9 @@ export function MatchDetailPage() {
           <p className="mt-1.5 text-[13.5px] text-muted">
             {dateLabel(match.date, language)} · {match.city} · {match.pitch}
           </p>
+          <p className="mt-0.5 text-[12.5px] text-faint">
+            {t("matchDetail.bookedBy", { team: teamName(match.booked_by_team_id) })}
+          </p>
         </div>
         <Pill value={match.status} />
       </div>

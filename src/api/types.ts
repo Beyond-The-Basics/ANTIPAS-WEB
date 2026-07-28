@@ -132,6 +132,7 @@ export interface OpponentApplication {
   proposed_pitch: string | null;
   proposed_pitch_address: string | null;
   proposed_by_team_id: string | null;
+  proposed_booked_by_team_id: string | null;
   created_at: string;
 }
 
@@ -153,6 +154,7 @@ export interface NegotiationProposal {
   end_date: string | null;
   pitch: string;
   pitch_address: string | null;
+  booked_by_team_id: string;
   created_at: string;
 }
 
@@ -166,7 +168,21 @@ export interface Match {
   city: string;
   pitch: string;
   date: string;
+  booked_by_team_id: string;
   status: MatchStatus;
+  created_at: string;
+}
+
+/** A venue a team has registered — pick one during a negotiation instead of typing a pitch name
+ * freehand. Always owned by `team_id`; `is_neutral` is what makes it visible to any negotiation,
+ * not just the owning team's own. */
+export interface Pitch {
+  id: string;
+  team_id: string;
+  name: string;
+  city: string;
+  price_per_hour: number | null;
+  is_neutral: boolean;
   created_at: string;
 }
 
