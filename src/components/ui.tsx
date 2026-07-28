@@ -3,8 +3,21 @@
 // here they are components so the palette lives in one place.
 
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Sport, TeamRole } from "../api/types";
+import i18n from "../i18n";
+
+/** A live object indexed by key that always resolves through the current i18n language — reads
+ * like a plain lookup object (`SPORT_LABEL[sport]`) at every existing call site, but re-resolves
+ * on each access rather than baking in a translation at import time. Not itself reactive (a plain
+ * property read doesn't subscribe a component to re-render), but every consumer already calls
+ * `useTranslation()` for its own strings, which re-renders it on language change anyway. */
+function labelLookup<K extends string>(namespace: string): Record<K, string> {
+  return new Proxy({} as Record<K, string>, {
+    get: (_target, prop: string) => i18n.t(`${namespace}.${prop}`),
+  });
+}
 
 // --- status pills -------------------------------------------------------------
 
@@ -22,23 +35,22 @@ const PILL_TONE: Record<string, string> = {
   cancelled_by_b: "bg-chip-2 text-chip-ink-2",
 };
 
-/** `cancelled_by_a` reads badly in a pill; the API has no display name for it. */
-export function statusLabel(value: string): string {
-  return value.replace(/_/g, " ");
-}
+export const STATUS_LABEL = labelLookup<string>("status");
 
 export function Pill({ value, label }: { value: string; label?: string }) {
+  const { t } = useTranslation();
   const tone = PILL_TONE[value] ?? "bg-chip-2 text-chip-ink-2";
   return (
     <span
       className={`${tone} whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-bold capitalize`}
     >
-      {label ?? statusLabel(value)}
+      {label ?? t(`status.${value}`)}
     </span>
   );
 }
 
 export function RolePill({ role }: { role: TeamRole | null }) {
+  const { t } = useTranslation();
   const captain = role === "captain";
   return (
     <span
@@ -46,7 +58,7 @@ export function RolePill({ role }: { role: TeamRole | null }) {
         captain ? "bg-brand-tint text-brand-deep" : "bg-chip text-muted"
       } whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-bold capitalize`}
     >
-      {role ?? "—"}
+      {role ? t(`role.${role}`) : "—"}
     </span>
   );
 }
@@ -100,18 +112,15 @@ export function AvatarStack({ names, total }: { names: string[]; total: number }
   );
 }
 
+// Single-letter icon inside the sport badge — kept as abstract initials rather than translated,
+// same idea as a logo mark.
 const SPORT_LETTER: Record<Sport, string> = {
   soccer: "S",
   tennis: "T",
   paddle: "P",
   basketball: "B",
 };
-export const SPORT_LABEL: Record<Sport, string> = {
-  soccer: "Soccer",
-  tennis: "Tennis",
-  paddle: "Paddle",
-  basketball: "Basketball",
-};
+export const SPORT_LABEL = labelLookup<Sport>("sports");
 
 /** Prototype `dot()` — a rounded green square carrying the sport's initial. */
 export function SportDot({ sport, size = 22 }: { sport: Sport; size?: number }) {

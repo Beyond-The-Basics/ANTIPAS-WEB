@@ -6,16 +6,19 @@
 // progress — the step re-reads its defaults from the acting user, which the backend already has.
 
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { api, ApiError } from "../api/client";
+import { api } from "../api/client";
 import { SPORTS, type Gender, type Sport } from "../api/types";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { RatingDots, SPORT_LABEL, SportDot } from "../components/ui";
 import { useActingUser } from "../context/ActingUser";
 import { CITIES_BY_COUNTRY, type Country, findCity, isCountry } from "../lib/cities";
+import { translateApiError } from "../lib/errors";
 import { ATHLETIC_TRAITS, COUNTRIES, DEFAULT_COUNTRY, type AthleticTraitKey } from "../lib/profile";
 
-const STEPS = ["About you", "Location", "Sports", "Athletic profile"] as const;
+const STEP_COUNT = 4;
 
 function useRedirectTarget(): string {
   const location = useLocation() as { state?: { from?: string } };
@@ -23,10 +26,12 @@ function useRedirectTarget(): string {
 }
 
 function Progress({ step }: { step: number }) {
+  const { t } = useTranslation();
+  const steps = t("onboarding.steps", { returnObjects: true }) as string[];
   return (
     <div className="mb-8">
       <div className="mb-2 flex gap-1.5">
-        {STEPS.map((_, i) => (
+        {Array.from({ length: STEP_COUNT }, (_, i) => (
           <div
             key={i}
             className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-brand" : "bg-line-2"}`}
@@ -34,7 +39,7 @@ function Progress({ step }: { step: number }) {
         ))}
       </div>
       <div className="text-[12.5px] font-semibold text-muted">
-        Step {step + 1} of {STEPS.length} · {STEPS[step]}
+        {t("onboarding.stepProgress", { step: step + 1, total: STEP_COUNT, name: steps[step] })}
       </div>
     </div>
   );
@@ -49,6 +54,9 @@ function WizardShell({ step, children }: { step: number; children: ReactNode }) 
             <img src="/logo-icon.png" alt="" className="h-[34px] w-[34px]" />
             <div className="text-xl font-extrabold tracking-[-0.02em] text-ink">Kickoff</div>
           </Link>
+          <div className="ms-auto">
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
       <main className="flex flex-1 items-start justify-center px-6 py-14">
@@ -105,7 +113,7 @@ function ErrorNote({ message }: { message: string }) {
 function StepActions({
   onBack,
   onNext,
-  nextLabel = "Continue",
+  nextLabel,
   busy,
   disabled,
   skip,
@@ -117,6 +125,7 @@ function StepActions({
   disabled?: boolean;
   skip?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mt-8 flex items-center gap-3">
       {onBack && (
@@ -125,7 +134,7 @@ function StepActions({
           onClick={onBack}
           className="rounded-cta border border-landing-line-strong bg-white px-5 py-3 text-sm font-bold text-ink hover:bg-landing-hover-soft"
         >
-          Back
+          {t("onboarding.back")}
         </button>
       )}
       <button
@@ -134,23 +143,18 @@ function StepActions({
         disabled={busy || disabled}
         className="flex-1 rounded-cta bg-brand px-6 py-3 text-sm font-bold text-white shadow-btn-brand transition duration-150 hover:brightness-[1.06] disabled:opacity-60"
       >
-        {busy ? "…" : nextLabel}
+        {busy ? "…" : (nextLabel ?? t("onboarding.continue"))}
       </button>
       {skip}
     </div>
   );
 }
 
-/** API errors are shown verbatim: the backend already words them for humans. */
-function messageFor(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  return "Something went wrong. Please try again.";
-}
-
 export function OnboardingPage() {
   const { user, refresh } = useActingUser();
   const navigate = useNavigate();
   const target = useRedirectTarget();
+  const { t } = useTranslation();
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -185,7 +189,7 @@ export function OnboardingPage() {
       await api.patch("/users/me", patch);
       return true;
     } catch (err) {
-      setError(messageFor(err));
+      setError(translateApiError(err, t));
       return false;
     } finally {
       setBusy(false);
@@ -205,7 +209,7 @@ export function OnboardingPage() {
       await refresh();
       navigate(target, { replace: true });
     } catch (err) {
-      setError(messageFor(err));
+      setError(translateApiError(err, t));
     } finally {
       setBusy(false);
     }
@@ -218,21 +222,21 @@ export function OnboardingPage() {
       {step === 0 && (
         <>
           <StepHeading
-            title={`Nice to meet you, ${user.name.split(" ")[0]}`}
-            subtitle="A couple of basics so other players know who they're playing."
+            title={t("onboarding.step0Title", { name: user.name.split(" ")[0] })}
+            subtitle={t("onboarding.step0Subtitle")}
           />
           <div className="flex flex-col gap-4">
-            <Field label="Nickname">
+            <Field label={t("onboarding.nickname")}>
               <input
                 className={inputClass}
                 autoFocus
                 maxLength={60}
-                placeholder="What should we call you?"
+                placeholder={t("onboarding.nicknamePlaceholder")}
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
               />
             </Field>
-            <Field label="Age">
+            <Field label={t("onboarding.age")}>
               <input
                 className={inputClass}
                 type="number"
@@ -244,7 +248,7 @@ export function OnboardingPage() {
                 onChange={(e) => setAge(e.target.value)}
               />
             </Field>
-            <Field label="Gender">
+            <Field label={t("onboarding.gender")}>
               <div className="flex gap-2.5">
                 {(["male", "female"] as const).map((g) => (
                   <button
@@ -257,7 +261,7 @@ export function OnboardingPage() {
                         : "border-landing-line-strong bg-white text-ink hover:bg-landing-hover-soft"
                     }`}
                   >
-                    {g}
+                    {t(`gender.${g}`)}
                   </button>
                 ))}
               </div>
@@ -273,9 +277,9 @@ export function OnboardingPage() {
 
       {step === 1 && (
         <>
-          <StepHeading title="Where are you based?" subtitle="This is how we find matches near you." />
+          <StepHeading title={t("onboarding.step1Title")} subtitle={t("onboarding.step1Subtitle")} />
           <div className="flex flex-col gap-4">
-            <Field label="Country">
+            <Field label={t("onboarding.country")}>
               <select
                 className={inputClass}
                 value={country}
@@ -291,14 +295,14 @@ export function OnboardingPage() {
                 ))}
               </select>
             </Field>
-            <Field label="City">
+            <Field label={t("onboarding.city")}>
               <select
                 className={inputClass}
                 autoFocus
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
               >
-                <option value="">Select a city…</option>
+                <option value="">{t("onboarding.selectCity")}</option>
                 {CITIES_BY_COUNTRY[country].map((c) => (
                   <option key={c.name} value={c.name}>
                     {c.name}
@@ -318,10 +322,7 @@ export function OnboardingPage() {
 
       {step === 2 && (
         <>
-          <StepHeading
-            title="What do you play?"
-            subtitle="Pick at least one — you can add more later."
-          />
+          <StepHeading title={t("onboarding.step2Title")} subtitle={t("onboarding.step2Subtitle")} />
           <div className="flex flex-wrap gap-2.5">
             {SPORTS.map((s) => {
               const selected = sports.includes(s);
@@ -353,10 +354,7 @@ export function OnboardingPage() {
 
       {step === 3 && (
         <>
-          <StepHeading
-            title="Rate your game"
-            subtitle="Optional self-ratings — helps teammates and opponents know what to expect."
-          />
+          <StepHeading title={t("onboarding.step3Title")} subtitle={t("onboarding.step3Subtitle")} />
           <div className="flex flex-col gap-5">
             {ATHLETIC_TRAITS.map((t) => (
               <div key={t.key} className="flex items-center justify-between gap-4">
@@ -373,7 +371,7 @@ export function OnboardingPage() {
           </div>
           <StepActions
             busy={busy}
-            nextLabel="Finish"
+            nextLabel={t("onboarding.finish")}
             onBack={() => setStep(2)}
             onNext={() => finish(ratings)}
           />

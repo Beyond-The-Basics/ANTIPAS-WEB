@@ -3,7 +3,9 @@
 // below the fold. Either captain can counter the current offer; the OTHER captain agrees, which
 // creates the match. Proposal/agreement events also arrive over the socket so both sides stay live.
 
+import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { api, getActingUserId } from "../api/client";
 import type {
@@ -43,23 +45,34 @@ function summarizeProposal(
   entry: NegotiationProposal,
   older: NegotiationProposal | undefined,
   proposerLabel: string,
+  language: string,
+  t: TFunction,
 ): string {
   if (!older) {
-    return `${proposerLabel} proposed ${fullDateLabel(entry.date)}, ${timeOnlyLabel(entry.date)}`;
+    return t("negotiation.proposedSentence", {
+      proposer: proposerLabel,
+      date: fullDateLabel(entry.date, language),
+      time: timeOnlyLabel(entry.date, language),
+    });
   }
   const changes: string[] = [];
   if (entry.date.slice(0, 10) !== older.date.slice(0, 10)) {
-    changes.push(`moved date to ${fullDateLabel(entry.date)}`);
+    changes.push(t("negotiation.movedDateTo", { date: fullDateLabel(entry.date, language) }));
   }
-  if (timeOnlyLabel(entry.date) !== timeOnlyLabel(older.date) || entry.end_date !== older.end_date) {
-    changes.push(`moved time to ${timeRangeLabel(entry.date, entry.end_date)}`);
+  if (
+    timeOnlyLabel(entry.date, language) !== timeOnlyLabel(older.date, language) ||
+    entry.end_date !== older.end_date
+  ) {
+    changes.push(
+      t("negotiation.movedTimeTo", { time: timeRangeLabel(entry.date, entry.end_date, language) }),
+    );
   }
   if (entry.pitch !== older.pitch || entry.pitch_address !== older.pitch_address) {
-    changes.push(`moved pitch to ${entry.pitch}`);
+    changes.push(t("negotiation.movedPitchTo", { pitch: entry.pitch }));
   }
   return changes.length > 0
-    ? `${proposerLabel} countered — ${changes.join(", ")}`
-    : `${proposerLabel} countered — proposed new terms`;
+    ? t("negotiation.counteredWithChanges", { proposer: proposerLabel, changes: changes.join(", ") })
+    : t("negotiation.counteredNoChanges", { proposer: proposerLabel });
 }
 
 export function NegotiationModal({
@@ -79,6 +92,8 @@ export function NegotiationModal({
 }) {
   const { user: acting } = useActingUser();
   const { run } = useToast();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
 
   const [search, setSearch] = useState<OpponentSearch | null>(null);
   const [proposals, setProposals] = useState<NegotiationProposal[]>([]);
@@ -201,14 +216,14 @@ export function NegotiationModal({
       setProposedBy(updated.proposed_by_team_id);
       refreshProposals();
       setEditing(false);
-    }, "Counter-offer sent");
+    }, t("negotiation.counterOfferSent"));
   };
 
   const agree = () =>
     run(async () => {
       const match = await api.post<Match>(`/opponent-applications/${appId}/agree`);
       onAgreed(match);
-    }, "Match scheduled!");
+    }, t("negotiation.matchScheduled"));
 
   const canAgree = proposedBy !== null && proposedBy !== myTeamId && !!proposedDate && !editing;
 
@@ -237,14 +252,16 @@ export function NegotiationModal({
           <div className="bg-gradient-to-br from-brand to-brand-deep px-5 py-5 text-white">
             <div className="flex items-center justify-between">
               <div className="text-[11.5px] font-bold uppercase tracking-[.08em] text-white/70">
-                Match challenge
+                {t("negotiation.matchChallenge")}
               </div>
               <span className="whitespace-nowrap rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-bold">
-                {application.status === "accepted" ? "Negotiating" : application.status}
+                {application.status === "accepted"
+                  ? t("negotiation.negotiating")
+                  : t(`status.${application.status}`)}
               </span>
             </div>
             <div className="mt-1 text-[22px] font-bold leading-tight">
-              {homeName} vs {awayName}
+              {t("negotiation.vsTeam", { home: homeName, away: awayName })}
             </div>
             <div className="mt-3 flex items-center gap-3">
               <div className="flex">
@@ -255,9 +272,7 @@ export function NegotiationModal({
                   <Avatar name={awayName} size={30} />
                 </div>
               </div>
-              <div className="text-[12.5px] text-white/85">
-                Both captains must agree on the terms below
-              </div>
+              <div className="text-[12.5px] text-white/85">{t("negotiation.bothCaptainsAgree")}</div>
             </div>
           </div>
 
@@ -267,9 +282,11 @@ export function NegotiationModal({
               <div className="mb-4 flex items-center gap-2.5 rounded-tile border border-amber-200 bg-amber-50 px-3.5 py-2.5">
                 <Avatar name={proposedByName} size={26} />
                 <div className="text-[12.5px] text-amber-900">
-                  <strong className="font-bold">{proposedByMe ? "You" : proposedByName}</strong>{" "}
-                  proposed these terms
-                  {latestProposal && <> · {relativeTime(latestProposal.created_at)}</>}
+                  <strong className="font-bold">
+                    {proposedByMe ? t("negotiation.you") : proposedByName}
+                  </strong>{" "}
+                  {t("negotiation.proposedTheseTerms")}
+                  {latestProposal && <> · {relativeTime(latestProposal.created_at, t)}</>}
                 </div>
               </div>
             )}
@@ -277,30 +294,33 @@ export function NegotiationModal({
             {!editing ? (
               <div className="flex flex-col gap-3">
                 <OfferRow
-                  label="Date"
+                  label={t("negotiation.date")}
                   icon="📅"
-                  value={fullDateLabel(proposedDate)}
+                  value={fullDateLabel(proposedDate, language)}
                   highlight
                   onEdit={startEdit}
+                  editLabel={t("negotiation.edit")}
                 />
                 <OfferRow
-                  label="Time"
+                  label={t("negotiation.time")}
                   icon="⏰"
-                  value={timeRangeLabel(proposedDate, proposedEndDate)}
+                  value={timeRangeLabel(proposedDate, proposedEndDate, language)}
                   onEdit={startEdit}
+                  editLabel={t("negotiation.edit")}
                 />
                 <OfferRow
-                  label="Pitch"
+                  label={t("negotiation.pitch")}
                   icon="📍"
                   value={proposedPitch ?? "—"}
                   sub={proposedPitchAddress ?? undefined}
                   onEdit={startEdit}
+                  editLabel={t("negotiation.edit")}
                 />
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <div>
-                  <SectionLabel>Date</SectionLabel>
+                  <SectionLabel>{t("negotiation.date")}</SectionLabel>
                   <input
                     type="date"
                     className="field w-full"
@@ -309,7 +329,7 @@ export function NegotiationModal({
                   />
                 </div>
                 <div>
-                  <SectionLabel>Time</SectionLabel>
+                  <SectionLabel>{t("negotiation.time")}</SectionLabel>
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
@@ -327,16 +347,16 @@ export function NegotiationModal({
                   </div>
                 </div>
                 <div>
-                  <SectionLabel>Pitch</SectionLabel>
+                  <SectionLabel>{t("negotiation.pitch")}</SectionLabel>
                   <input
                     className="field mb-2 w-full"
-                    placeholder="Venue name"
+                    placeholder={t("negotiation.venueName")}
                     value={formPitch}
                     onChange={(e) => setFormPitch(e.target.value)}
                   />
                   <input
                     className="field w-full"
-                    placeholder="Address (optional)"
+                    placeholder={t("negotiation.addressOptional")}
                     value={formPitchAddress}
                     onChange={(e) => setFormPitchAddress(e.target.value)}
                   />
@@ -347,12 +367,12 @@ export function NegotiationModal({
             {/* offer history */}
             {historyDesc.length > 0 && (
               <div className="mt-5 border-t border-line pt-4">
-                <SectionLabel>Offer history</SectionLabel>
+                <SectionLabel>{t("negotiation.offerHistory")}</SectionLabel>
                 <div className="flex flex-col gap-2">
                   {historyDesc.map((entry, i) => {
                     const older = historyDesc[i + 1];
                     const mine = entry.proposed_by_team_id === myTeamId;
-                    const proposerLabel = mine ? "You" : teamName(entry.proposed_by_team_id);
+                    const proposerLabel = mine ? t("negotiation.you") : teamName(entry.proposed_by_team_id);
                     return (
                       <div key={entry.id} className="flex items-start gap-2 text-[12.5px]">
                         <span
@@ -361,8 +381,10 @@ export function NegotiationModal({
                           }`}
                         />
                         <div>
-                          <span className="text-ink">{summarizeProposal(entry, older, proposerLabel)}</span>{" "}
-                          <span className="text-faint">· {relativeTime(entry.created_at)}</span>
+                          <span className="text-ink">
+                            {summarizeProposal(entry, older, proposerLabel, language, t)}
+                          </span>{" "}
+                          <span className="text-faint">· {relativeTime(entry.created_at, t)}</span>
                         </div>
                       </div>
                     );
@@ -378,15 +400,13 @@ export function NegotiationModal({
                 className="text-[12.5px] font-bold text-muted hover:text-ink"
                 onClick={() => setChatOpen((o) => !o)}
               >
-                {chatOpen ? "Hide chat ▴" : "Chat ▾"}
+                {chatOpen ? t("negotiation.hideChat") : t("negotiation.showChat")}
               </button>
               {chatOpen && (
                 <div className="mt-3">
                   <div ref={scrollRef} className="max-h-48 space-y-2 overflow-y-auto">
                     {messages.length === 0 ? (
-                      <p className="text-[12.5px] text-faint">
-                        No messages yet — say hi and sort out the details.
-                      </p>
+                      <p className="text-[12.5px] text-faint">{t("negotiation.noMessagesYet")}</p>
                     ) : (
                       messages.map((m) => {
                         const mine = m.sender_user_id === acting?.id;
@@ -412,13 +432,13 @@ export function NegotiationModal({
                   <div className="mt-2 flex items-center gap-2">
                     <input
                       className="field flex-1"
-                      placeholder="Message…"
+                      placeholder={t("negotiation.messagePlaceholder")}
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && send()}
                     />
                     <Button size="sm" onClick={send} disabled={!draft.trim()}>
-                      Send
+                      {t("negotiation.send")}
                     </Button>
                   </div>
                 </div>
@@ -432,23 +452,23 @@ export function NegotiationModal({
           {editing ? (
             <>
               <Button variant="ghost" className="flex-1" onClick={() => setEditing(false)}>
-                Cancel
+                {t("negotiation.cancel")}
               </Button>
               <Button
                 className="flex-[2] font-bold"
                 onClick={submitCounter}
                 disabled={!formDate || !formStartTime || !formPitch.trim()}
               >
-                Send counter-offer
+                {t("negotiation.sendCounterOffer")}
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" className="flex-1" onClick={startEdit}>
-                Counter
+                {t("negotiation.counter")}
               </Button>
               <Button className="flex-[2] font-bold" disabled={!canAgree} onClick={agree}>
-                Accept &amp; confirm match
+                {t("negotiation.acceptConfirmMatch")}
               </Button>
             </>
           )}
@@ -465,6 +485,7 @@ function OfferRow({
   sub,
   highlight,
   onEdit,
+  editLabel,
 }: {
   label: string;
   icon: string;
@@ -472,6 +493,7 @@ function OfferRow({
   sub?: string;
   highlight?: boolean;
   onEdit: () => void;
+  editLabel: string;
 }) {
   return (
     <div>
@@ -489,7 +511,7 @@ function OfferRow({
           </div>
         </div>
         <button className="flex-none text-[12.5px] font-bold text-brand hover:text-brand-dark" onClick={onEdit}>
-          Edit
+          {editLabel}
         </button>
       </div>
     </div>

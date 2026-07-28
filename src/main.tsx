@@ -4,7 +4,9 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { ActingUserProvider } from "./context/ActingUser";
+import { LanguageProvider } from "./context/Language";
 import { ToastProvider } from "./context/Toast";
+import "./i18n";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -12,7 +14,9 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ToastProvider>
         <ActingUserProvider>
-          <App />
+          <LanguageProvider>
+            <App />
+          </LanguageProvider>
         </ActingUserProvider>
       </ToastProvider>
     </BrowserRouter>

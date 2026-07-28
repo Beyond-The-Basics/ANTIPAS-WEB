@@ -8,6 +8,7 @@
 
 import L from "leaflet";
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MapContainer, Marker, TileLayer, ZoomControl, useMapEvents } from "react-leaflet";
 
 import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
@@ -58,6 +59,7 @@ export function LocationPicker({
 }: {
   onCityResolved: (city: string) => void;
 }) {
+  const { t } = useTranslation();
   const [position, setPosition] = useState<[number, number]>(DEFAULT_CENTER);
   const [resolving, setResolving] = useState(false);
   const markerRef = useRef<L.Marker>(null);
@@ -98,8 +100,8 @@ export function LocationPicker({
           }}
         />
       </MapContainer>
-      <div className="pointer-events-none absolute left-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
-        {resolving ? "Locating…" : "Drag the pin or click the map"}
+      <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
+        {resolving ? t("locationPicker.locating") : t("locationPicker.dragOrClick")}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import { SPORTS, type Gender, type Match, type Sport, type User } from "../api/types";
@@ -31,6 +32,7 @@ export function ProfilePage() {
   const { user: acting, refresh } = useActingUser();
   const { run } = useToast();
   const { teams } = useMyTeams(acting);
+  const { t } = useTranslation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -88,10 +90,10 @@ export function ProfilePage() {
     // resolved — but kept as a defensive fallback for the dev "act as" switcher's edge cases.
     return (
       <>
-        <h1 className="mb-1 text-[26px] font-bold">Profile</h1>
+        <h1 className="mb-1 text-[26px] font-bold">{t("profile.title")}</h1>
         <p className="mb-7 text-sm text-muted">
-          Nobody selected — pick a user from the chip in the top right
-          {import.meta.env.DEV && ", or create one below"}.
+          {t("profile.nobodySelected")}
+          {import.meta.env.DEV && t("profile.orCreateBelow")}.
         </p>
         {import.meta.env.DEV && <CreateUser />}
       </>
@@ -115,16 +117,16 @@ export function ProfilePage() {
                 <div className="text-[21px] font-bold tracking-[-.01em]">{acting.name}</div>
                 {acting.phone_verified ? (
                   <span className="rounded-full bg-brand-tint px-2.5 py-[3px] text-[11px] font-bold text-brand-deep">
-                    ✓ Verified
+                    {t("profile.verified")}
                   </span>
                 ) : (
                   <span className="rounded-full bg-chip-2 px-2.5 py-[3px] text-[11px] font-bold text-chip-ink-2">
-                    Unverified
+                    {t("profile.unverified")}
                   </span>
                 )}
               </div>
               <div className="mt-1 text-[12.5px] text-muted">
-                on Kickoff since {Number.isNaN(joined) ? "—" : joined}
+                {t("profile.onKickoffSince", { year: Number.isNaN(joined) ? "—" : joined })}
               </div>
             </div>
           </div>
@@ -146,48 +148,48 @@ export function ProfilePage() {
           )}
 
           <div className="mb-[22px] mt-4 flex overflow-hidden rounded-tile border border-line-2">
-            <Stat value="—" label="Rating" />
-            <Stat value={matchCount === null ? "…" : String(matchCount)} label="Matches" />
-            <Stat value={String(teams.length)} label="Teams" />
-            <Stat value="—" label="Strikes" />
+            <Stat value="—" label={t("profile.rating")} />
+            <Stat value={matchCount === null ? "…" : String(matchCount)} label={t("profile.matches")} />
+            <Stat value={String(teams.length)} label={t("profile.teams")} />
+            <Stat value="—" label={t("profile.strikes")} />
           </div>
 
           <div className="flex flex-col gap-5 md:flex-row">
             <div className="flex-1">
-              <SectionLabel>Account</SectionLabel>
-              <Label>Name</Label>
+              <SectionLabel>{t("profile.account")}</SectionLabel>
+              <Label>{t("profile.name")}</Label>
               <input
                 className="field mb-3 w-full"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
               <Label>
-                Phone <span className="font-normal text-faint">· can't be changed</span>
+                {t("profile.phone")} <span className="font-normal text-faint">{t("profile.phoneCannotChange")}</span>
               </Label>
               <div className="mb-3 w-full rounded-lg border border-line bg-[#fafafa] px-3 py-2.5 text-[12.5px] text-muted">
                 {acting.phone}
               </div>
-              <Label>Email</Label>
+              <Label>{t("profile.email")}</Label>
               <input
                 className="field mb-6 w-full"
-                placeholder="(none)"
+                placeholder={t("common.none")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              <SectionLabel>Profile</SectionLabel>
+              <SectionLabel>{t("profile.profileSection")}</SectionLabel>
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Nickname</Label>
+                  <Label>{t("profile.nickname")}</Label>
                   <input
                     className="field w-full"
-                    placeholder="(none)"
+                    placeholder={t("common.none")}
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>Age</Label>
+                  <Label>{t("profile.age")}</Label>
                   <input
                     className="field w-full"
                     type="number"
@@ -198,19 +200,19 @@ export function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Gender</Label>
+                  <Label>{t("profile.gender")}</Label>
                   <select
                     className="field w-full"
                     value={gender}
                     onChange={(e) => setGender(e.target.value as Gender | "")}
                   >
-                    <option value="">(none)</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
+                    <option value="">{t("common.none")}</option>
+                    <option value="male">{t("gender.male")}</option>
+                    <option value="female">{t("gender.female")}</option>
                   </select>
                 </div>
                 <div>
-                  <Label>Country</Label>
+                  <Label>{t("profile.country")}</Label>
                   <select
                     className="field w-full"
                     value={country}
@@ -224,17 +226,17 @@ export function ProfilePage() {
                   </select>
                 </div>
                 <div>
-                  <Label>City</Label>
+                  <Label>{t("profile.city")}</Label>
                   <input
                     className="field w-full"
-                    placeholder="(none)"
+                    placeholder={t("common.none")}
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                   />
                 </div>
               </div>
 
-              <Label>Favorite sports</Label>
+              <Label>{t("profile.favoriteSports")}</Label>
               <div className="mb-5 mt-1.5 flex flex-wrap gap-2">
                 {SPORTS.map((s) => {
                   const selected = favoriteSports.includes(s);
@@ -256,7 +258,7 @@ export function ProfilePage() {
                 })}
               </div>
 
-              <Label>Athletic profile</Label>
+              <Label>{t("profile.athleticProfile")}</Label>
               <div className="mb-6 mt-2 flex flex-col gap-2.5">
                 {ATHLETIC_TRAITS.map((t) => (
                   <div key={t.key} className="flex items-center justify-between gap-3">
@@ -285,32 +287,29 @@ export function ProfilePage() {
                         favorite_sports: favoriteSports,
                         ...ratings,
                       }),
-                    "Profile updated",
+                    t("profile.profileUpdated"),
                   ).then(refresh)
                 }
               >
-                Save changes
+                {t("profile.saveChanges")}
               </Button>
               <p className="mt-3 text-[11.5px] leading-snug text-faint">
-                Phone is set at signup and is the Firebase-verified identity, so it's read-only here.
+                {t("profile.phoneReadOnlyNote")}
               </p>
             </div>
 
             <div className="w-full flex-none md:w-64">
               <SectionLabel>
-                Reputation{" "}
+                {t("profile.reputation")}{" "}
                 <span className="font-normal normal-case tracking-normal text-faint">
-                  · not built yet
+                  {t("profile.notBuiltYet")}
                 </span>
               </SectionLabel>
               <Card className="rounded-card p-4">
-                <p className="text-[12.5px] leading-relaxed text-muted">
-                  The design shows a rating breakdown across punctuality, sportsmanship and
-                  communication. Nothing backs it yet — there are no rating, review or strike fields
-                  on the API — so these are left blank rather than filled with sample numbers.
-                </p>
+                <p className="text-[12.5px] leading-relaxed text-muted">{t("profile.reputationNote")}</p>
                 <div className="mt-4 flex flex-col gap-2.5">
-                  {["Punctuality", "Sportsmanship", "Communication"].map((k) => (
+                  {[t("profile.punctuality"), t("profile.sportsmanship"), t("profile.communication")].map(
+                    (k) => (
                     <div key={k}>
                       <div className="mb-1 flex justify-between text-[11px] font-semibold">
                         <span>{k}</span>
@@ -342,6 +341,7 @@ export function ProfilePage() {
 function CreateUser() {
   const { actAs } = useActingUser();
   const { run } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -355,19 +355,19 @@ function CreateUser() {
       setEmail("");
       setOpen(false);
       actAs(created); // start impersonating the new (credential-less) user
-    }, "User created");
+    }, t("profile.userCreated"));
 
   return (
     <>
-      <SectionLabel>Add a user</SectionLabel>
+      <SectionLabel>{t("profile.addUser")}</SectionLabel>
       {!open ? (
         <Button variant="ghost" onClick={() => setOpen(true)}>
-          + Create a user
+          {t("profile.createUser")}
         </Button>
       ) : (
         <Card className="flex flex-wrap items-end gap-2.5 p-4">
           <div>
-            <Label>Name</Label>
+            <Label>{t("profile.name")}</Label>
             <input
               className="field w-[160px]"
               autoFocus
@@ -377,7 +377,7 @@ function CreateUser() {
             />
           </div>
           <div>
-            <Label>Phone (unique)</Label>
+            <Label>{t("profile.phoneUnique")}</Label>
             <input
               className="field w-[170px]"
               placeholder="+15555550100"
@@ -386,7 +386,7 @@ function CreateUser() {
             />
           </div>
           <div>
-            <Label>Email (optional)</Label>
+            <Label>{t("profile.emailOptional")}</Label>
             <input
               className="field w-[200px]"
               placeholder="alice@example.com"
@@ -395,17 +395,14 @@ function CreateUser() {
             />
           </div>
           <Button onClick={create} disabled={!name || !phone}>
-            Create
+            {t("profile.create")}
           </Button>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t("profile.cancel")}
           </Button>
         </Card>
       )}
-      <p className="mt-2.5 text-[11.5px] text-faint">
-        The new user becomes the one you're acting as. Phone stays unverified until Firebase is
-        wired up.
-      </p>
+      <p className="mt-2.5 text-[11.5px] text-faint">{t("profile.createUserNote")}</p>
     </>
   );
 }

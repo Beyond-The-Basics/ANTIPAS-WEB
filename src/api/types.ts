@@ -1,5 +1,6 @@
 export type Sport = "soccer" | "tennis" | "paddle" | "basketball";
 export type Gender = "male" | "female";
+export type Locale = "en" | "fr" | "ar";
 export type TeamRole = "captain" | "admin" | "member";
 export type ListingStatus = "open" | "closed" | "confirmed" | "withdrawn" | "expired";
 export type ApplicationStatus =
@@ -20,6 +21,7 @@ export interface User {
   phone_verified: boolean;
   email: string | null;
   email_verified: boolean;
+  locale: Locale;
   created_at: string;
 
   // Onboarding profile — filled in by the post-signup step wizard, not at signup itself.

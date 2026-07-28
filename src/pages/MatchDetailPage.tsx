@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -28,6 +29,8 @@ export function MatchDetailPage() {
   const { matchId = "" } = useParams();
   const { user: acting } = useActingUser();
   const { run } = useToast();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
 
   const [match, setMatch] = useState<Match | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -101,7 +104,7 @@ export function MatchDetailPage() {
     void reload();
   }, [reload]);
 
-  if (!match) return <Empty>Loading match…</Empty>;
+  if (!match) return <Empty>{t("matchDetail.loading")}</Empty>;
 
   const act = (fn: () => Promise<unknown>, message: string) => run(fn, message).then(reload);
   const live = match.status === "confirmed";
@@ -113,16 +116,19 @@ export function MatchDetailPage() {
         to={`/teams/${mySide?.teamId ?? match.team_a_id}?tab=matches`}
         className="mb-3.5 inline-block text-[13px] text-muted hover:text-ink"
       >
-        ← Back
+        {t("matchDetail.back")}
       </Link>
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold">
-            {teamName(match.team_a_id)} vs {teamName(match.team_b_id)}
+            {t("matchDetail.vsTeam", {
+              home: teamName(match.team_a_id),
+              away: teamName(match.team_b_id),
+            })}
           </h1>
           <p className="mt-1.5 text-[13.5px] text-muted">
-            {dateLabel(match.date)} · {match.city} · {match.pitch}
+            {dateLabel(match.date, language)} · {match.city} · {match.pitch}
           </p>
         </div>
         <Pill value={match.status} />
@@ -132,31 +138,33 @@ export function MatchDetailPage() {
         <div className="mb-8 flex gap-2">
           <Button
             variant="ghost"
-            onClick={() => act(() => api.post(`/matches/${match.id}/played`), "Marked played")}
+            onClick={() =>
+              act(() => api.post(`/matches/${match.id}/played`), t("matchDetail.markedPlayed"))
+            }
           >
-            Mark played
+            {t("matchDetail.markPlayed")}
           </Button>
           <Button
             variant="ghost"
-            onClick={() => act(() => api.post(`/matches/${match.id}/cancel`), "Match cancelled")}
+            onClick={() =>
+              act(() => api.post(`/matches/${match.id}/cancel`), t("matchDetail.matchCancelled"))
+            }
           >
-            Cancel match
+            {t("matchDetail.cancelMatch")}
           </Button>
         </div>
       )}
 
       <SectionLabel>
-        Guest search {myOpenSearch ? `· expires in ${expiresLabel(myOpenSearch.expires_at)}` : ""}
+        {t("matchDetail.guestSearch")}{" "}
+        {myOpenSearch ? t("matchDetail.expiresIn", { time: expiresLabel(myOpenSearch.expires_at, t) }) : ""}
       </SectionLabel>
 
       {searches.length === 0 ? (
         <Card className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
           <div>
-            <div className="text-sm font-semibold">No guest search open</div>
-            <div className="mt-0.5 text-[12.5px] text-muted">
-              A guest fills a one-off gap in this fixture — free to publish, and accepting one
-              creates a match participation, not a roster membership.
-            </div>
+            <div className="text-sm font-semibold">{t("matchDetail.noGuestSearchOpen")}</div>
+            <div className="mt-0.5 text-[12.5px] text-muted">{t("matchDetail.guestSearchHint")}</div>
           </div>
           {mySide?.manages && live && (
             <Button
@@ -165,11 +173,11 @@ export function MatchDetailPage() {
                 act(
                   () =>
                     api.post(`/matches/${match.id}/guest-searches`, { team_id: mySide.teamId }),
-                  "Guest search published",
+                  t("matchDetail.guestSearchPublished"),
                 )
               }
             >
-              Publish guest search
+              {t("matchDetail.publishGuestSearch")}
             </Button>
           )}
         </Card>
@@ -183,7 +191,8 @@ export function MatchDetailPage() {
                     {teamName(s.team_id)} · {s.city}
                   </div>
                   <div className="mt-0.5 text-[12.5px] text-muted">
-                    expires in {expiresLabel(s.expires_at)} <ShortId id={s.id} />
+                    {t("matchDetail.expiresInPlain", { time: expiresLabel(s.expires_at, t) })}{" "}
+                    <ShortId id={s.id} />
                   </div>
                 </div>
                 <div className="flex flex-none items-center gap-2">
@@ -193,25 +202,27 @@ export function MatchDetailPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        act(() => api.post(`/guest-searches/${s.id}/withdraw`), "Withdrawn")
+                        act(() => api.post(`/guest-searches/${s.id}/withdraw`), t("matchDetail.withdrawn"))
                       }
                     >
-                      Withdraw
+                      {t("matchDetail.withdraw")}
                     </Button>
                   )}
                 </div>
               </Card>
 
-              <div className="flex flex-col gap-2.5 pl-1">
+              <div className="flex flex-col gap-2.5 ps-1">
                 {(apps[s.id] ?? []).length === 0 && (
-                  <p className="text-[12.5px] text-faint">No applicants to this search yet.</p>
+                  <p className="text-[12.5px] text-faint">{t("matchDetail.noApplicantsYet")}</p>
                 )}
                 {(apps[s.id] ?? []).map((a) => (
                   <Card key={a.id} className="flex items-center gap-3 px-4 py-3.5">
                     <div className="min-w-0 flex-1">
                       <div className="text-[13.5px] font-semibold">{userName(a.user_id)}</div>
                       <div className="mt-0.5 text-xs text-muted">
-                        {a.direction === "player_applied" ? "applied as guest" : "invited as guest"}
+                        {a.direction === "player_applied"
+                          ? t("matchDetail.appliedAsGuest")
+                          : t("matchDetail.invitedAsGuest")}
                       </div>
                     </div>
                     <Pill value={a.status} />
@@ -223,21 +234,24 @@ export function MatchDetailPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                              act(() => api.post(`/guest-applications/${a.id}/decline`), "Declined")
+                              act(
+                                () => api.post(`/guest-applications/${a.id}/decline`),
+                                t("matchDetail.declined"),
+                              )
                             }
                           >
-                            Decline
+                            {t("matchDetail.decline")}
                           </Button>
                           <Button
                             size="sm"
                             onClick={() =>
                               act(
                                 () => api.post(`/guest-applications/${a.id}/accept`),
-                                "Accepted — guest added to the match",
+                                t("matchDetail.acceptedGuestAdded"),
                               )
                             }
                           >
-                            Accept
+                            {t("matchDetail.accept")}
                           </Button>
                         </>
                       )}
@@ -250,11 +264,11 @@ export function MatchDetailPage() {
                           onClick={() =>
                             act(
                               () => api.post(`/guest-applications/${a.id}/withdraw`),
-                              "Invite withdrawn",
+                              t("matchDetail.inviteWithdrawn"),
                             )
                           }
                         >
-                          Withdraw invite
+                          {t("matchDetail.withdrawInvite")}
                         </Button>
                       )}
                   </Card>
@@ -275,7 +289,7 @@ export function MatchDetailPage() {
               value={inviteUser}
               onChange={(e) => setInviteUser(e.target.value)}
             >
-              <option value="">— pick a player —</option>
+              <option value="">{t("matchDetail.pickPlayer")}</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -291,44 +305,45 @@ export function MatchDetailPage() {
                       team_id: mySide.teamId,
                       user_id: inviteUser,
                     }),
-                  "Guest invited",
+                  t("matchDetail.guestInvited"),
                 ).then(() => {
                   setInviteUser("");
                   setInviting(false);
                 })
               }
             >
-              Invite
+              {t("matchDetail.invite")}
             </Button>
             <Button variant="ghost" onClick={() => setInviting(false)}>
-              Cancel
+              {t("matchDetail.cancel")}
             </Button>
           </div>
         ) : (
           <Button variant="ghost" className="mb-8" onClick={() => setInviting(true)}>
-            + Invite a guest
+            {t("matchDetail.inviteGuest")}
           </Button>
         ))}
 
-      <SectionLabel>Confirmed guests</SectionLabel>
+      <SectionLabel>{t("matchDetail.confirmedGuests")}</SectionLabel>
       {guests.length === 0 ? (
-        <Empty>No guests on this match yet.</Empty>
+        <Empty>{t("matchDetail.noGuestsYet")}</Empty>
       ) : (
         <div className="flex flex-col gap-2">
           {guests.map((g) => (
             <Card key={g.id} className="flex items-center gap-3 rounded-[10px] px-4 py-3">
               <Avatar name={userName(g.user_id)} size={28} />
               <div className="text-[13.5px] font-semibold">{userName(g.user_id)}</div>
-              <div className="text-xs text-muted">playing for {teamName(g.team_id)}</div>
+              <div className="text-xs text-muted">
+                {t("matchDetail.playingFor", { team: teamName(g.team_id) })}
+              </div>
             </Card>
           ))}
         </div>
       )}
 
       <p className="mt-4 text-[11.5px] leading-snug text-faint">
-        Direct invites have no <span className="font-mono">guest_search_id</span>, so they don't
-        appear under a search — the invited player sees them on Discover, and they show up here once
-        accepted.
+        {t("matchDetail.directInvitesNotePre")} <span className="font-mono">guest_search_id</span>
+        {t("matchDetail.directInvitesNotePost")}
       </p>
     </>
   );
