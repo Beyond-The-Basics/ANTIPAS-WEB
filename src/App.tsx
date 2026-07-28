@@ -13,6 +13,7 @@ import { OnboardingPage } from "./pages/OnboardingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { TeamDetailPage } from "./pages/TeamDetailPage";
 import { TeamsPage } from "./pages/TeamsPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
 /**
  * Every in-app screen renders inside the app shell and requires someone to act as — a signed-in
@@ -71,6 +72,9 @@ export default function App() {
 
       <Route element={<RequireUser />}>
         <Route path="/onboarding" element={<OnboardingPage />} />
+        {/* Outside the shell and not gated on onboarding: someone can arrive here straight from
+            signup, before they have a profile. */}
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Route>
 
       <Route element={<AppShell />}>

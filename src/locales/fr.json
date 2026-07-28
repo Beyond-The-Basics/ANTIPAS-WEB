@@ -69,6 +69,20 @@
     "phoneHint": "Obligatoire et unique — les équipes s'en servent pour vous contacter.",
     "passwordHint": "Au moins 8 caractères."
   },
+  "verifyEmail": {
+    "title": "Confirmez votre e-mail",
+    "subtitle": "Nous avons envoyé un code à 6 chiffres à",
+    "codeLabel": "Code de vérification",
+    "submit": "Vérifier l'e-mail",
+    "noCode": "Vous ne l'avez pas reçu ?",
+    "resend": "Envoyer un nouveau code",
+    "resendIn": "Nouveau code dans {{seconds}}s",
+    "codeSent": "Un nouveau code est en route.",
+    "later": "Je le ferai plus tard",
+    "bannerText": "Confirmez votre adresse e-mail pour sécuriser votre compte.",
+    "bannerCta": "Confirmer",
+    "bannerDismiss": "Fermer"
+  },
   "gender": {
     "male": "Homme",
     "female": "Femme"
@@ -641,6 +655,13 @@
     "conflict": "Cela entre en conflit avec quelque chose d'existant.",
     "invalid": "Veuillez vérifier le formulaire et réessayer.",
     "server": "Un problème est survenu de notre côté. Veuillez réessayer.",
-    "generic": "Un problème est survenu. Veuillez réessayer."
+    "generic": "Un problème est survenu. Veuillez réessayer.",
+    "otpIncorrect": "Ce code est incorrect. Vérifiez-le et réessayez.",
+    "otpExpired": "Ce code a expiré. Demandez-en un nouveau.",
+    "otpTooManyAttempts": "Trop de tentatives incorrectes. Demandez un nouveau code.",
+    "otpNoneActive": "Aucun code en attente. Demandez-en un nouveau.",
+    "otpSendFailed": "Impossible d'envoyer l'e-mail pour le moment. Réessayez sous peu.",
+    "otpNoEmail": "Ce compte n'a pas d'adresse e-mail à confirmer.",
+    "rateLimited": "C'était trop rapide — patientez un instant et réessayez."
   }
 }

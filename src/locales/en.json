@@ -69,6 +69,20 @@
     "phoneHint": "Required and unique — teams use it to reach you.",
     "passwordHint": "At least 8 characters."
   },
+  "verifyEmail": {
+    "title": "Confirm your email",
+    "subtitle": "We sent a 6-digit code to",
+    "codeLabel": "Verification code",
+    "submit": "Verify email",
+    "noCode": "Didn't get it?",
+    "resend": "Send a new code",
+    "resendIn": "Send a new code in {{seconds}}s",
+    "codeSent": "A new code is on its way.",
+    "later": "I'll do this later",
+    "bannerText": "Confirm your email address to secure your account.",
+    "bannerCta": "Confirm",
+    "bannerDismiss": "Dismiss"
+  },
   "gender": {
     "male": "Male",
     "female": "Female"
@@ -641,6 +655,13 @@
     "conflict": "That conflicts with something already there.",
     "invalid": "Please check the form and try again.",
     "server": "Something went wrong on our end. Please try again.",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "otpIncorrect": "That code isn't right. Check it and try again.",
+    "otpExpired": "That code has expired. Ask for a new one.",
+    "otpTooManyAttempts": "Too many incorrect tries. Ask for a new code.",
+    "otpNoneActive": "No code is waiting. Ask for a new one.",
+    "otpSendFailed": "We couldn't send the email right now. Please try again shortly.",
+    "otpNoEmail": "This account has no email address to confirm.",
+    "rateLimited": "That was too quick — please wait a moment and try again."
   }
 }

@@ -37,9 +37,14 @@ export function clearCredentials(): void {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Seconds the server asked us to wait, parsed from `Retry-After`. Set on 429s (the email
+   * verification resend floor is the one that uses it) so the UI can count down instead of
+   * guessing. */
+  retryAfter?: number;
+  constructor(status: number, message: string, retryAfter?: number) {
     super(message);
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -73,7 +78,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         : detail
           ? JSON.stringify(detail)
           : `${res.status} ${res.statusText}`;
-    throw new ApiError(res.status, message);
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    throw new ApiError(res.status, message, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
   }
   return data as T;
 }
