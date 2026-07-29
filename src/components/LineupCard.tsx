@@ -92,12 +92,15 @@ function PlayerChip({
       <div className="relative">
         <Avatar name={name} size={44} />
         {jerseyNumber !== null && (
-          <div className="absolute -bottom-1 -end-1 flex h-[19px] w-[19px] items-center justify-center rounded-full border-2 border-white bg-brand-deep text-[10px] font-extrabold text-white">
+          <div className="absolute -bottom-1 -end-1 flex h-[19px] w-[19px] items-center justify-center rounded-full border-2 border-white bg-[#0f5c37] text-[10px] font-extrabold text-white">
             {jerseyNumber}
           </div>
         )}
       </div>
-      <div className="w-full truncate rounded-full bg-white/95 px-1.5 py-[3px] text-center text-[10px] font-bold uppercase tracking-[.02em] text-ink">
+      {/* Literal colours, not palette tokens: this chip sits on the pitch graphic, whose green is
+          identical in both themes. A theme-reactive `text-ink` would turn near-white here and
+          vanish against the permanently-white chip. */}
+      <div className="w-full truncate rounded-full bg-white/95 px-1.5 py-[3px] text-center text-[10px] font-bold uppercase tracking-[.02em] text-[#141414]">
         {name.split(" ")[0]}
       </div>
     </div>
