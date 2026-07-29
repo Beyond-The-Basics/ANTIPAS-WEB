@@ -500,6 +500,11 @@
     "signOut": "Se déconnecter",
     "stopActingAs": "Arrêter l'emprunt d'identité"
   },
+  "theme": {
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
+  },
   "landing": {
     "header": {
       "navLinks": ["Comment ça marche", "Ce que vous pouvez faire", "Sports", "Témoignages"],

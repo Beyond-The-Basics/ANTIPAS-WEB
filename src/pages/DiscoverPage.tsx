@@ -383,7 +383,7 @@ export function DiscoverPage() {
           </MapContainer>
           {mappablePlayers.length === 0 && (
             <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
-              <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-muted shadow-float">
+              <span className="rounded-full bg-surface/95 px-3 py-1.5 text-xs font-semibold text-muted shadow-float">
                 {t("discover.noPlayersPlotted")}
               </span>
             </div>

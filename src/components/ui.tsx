@@ -78,7 +78,7 @@ export function initials(name: string): string {
 export function Avatar({ name, size = 30 }: { name: string; size?: number }) {
   return (
     <div
-      className="flex flex-none items-center justify-center rounded-full bg-line font-bold text-[#3a3a3a]"
+      className="flex flex-none items-center justify-center rounded-full bg-line font-bold text-ink-2"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
       title={name}
     >
@@ -96,7 +96,7 @@ export function AvatarStack({ names, total }: { names: string[]; total: number }
       {shown.map((n, i) => (
         <div
           key={`${n}-${i}`}
-          className="flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 border-white bg-line text-[9.5px] font-bold text-[#3a3a3a]"
+          className="flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 border-surface bg-line text-[9.5px] font-bold text-ink-2"
           style={{ marginRight: -9 }}
           title={n}
         >
@@ -104,7 +104,7 @@ export function AvatarStack({ names, total }: { names: string[]; total: number }
         </div>
       ))}
       {overflow > 0 && (
-        <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 border-white bg-chip text-[9.5px] font-bold text-muted">
+        <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full border-2 border-surface bg-chip text-[9.5px] font-bold text-muted">
           +{overflow}
         </div>
       )}
@@ -175,7 +175,7 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`rounded-tile border border-line bg-white ${onClick ? "cursor-pointer" : ""} ${className}`}
+      className={`rounded-tile border border-line bg-surface ${onClick ? "cursor-pointer" : ""} ${className}`}
     >
       {children}
     </div>
@@ -233,7 +233,7 @@ export function Button({
   const tone =
     variant === "primary"
       ? "bg-brand text-white border border-transparent hover:bg-brand-dark"
-      : "bg-white text-ink-2 border border-line hover:bg-canvas";
+      : "bg-surface text-ink-2 border border-line hover:bg-canvas";
   const dims =
     size === "sm" ? "px-3 py-1.5 text-[12.5px] rounded-[7px]" : "px-4 py-2.5 text-[13px] rounded-field";
   return (

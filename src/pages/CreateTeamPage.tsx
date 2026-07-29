@@ -99,7 +99,7 @@ export function CreateTeamPage() {
         {error && (
           <div
             role="alert"
-            className="mb-5 rounded-cta border border-[#d97066] bg-[#fdf3f2] px-3.5 py-3 text-[13px] text-[#9b3229]"
+            className="mb-5 rounded-cta border border-danger-border bg-danger-bg px-3.5 py-3 text-[13px] text-danger-text"
           >
             {error}
           </div>
@@ -129,7 +129,7 @@ export function CreateTeamPage() {
                     className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-[13px] font-semibold ${
                       sport === s
                         ? "border-brand bg-brand-tint text-brand-deep"
-                        : "border-line bg-white text-muted hover:bg-canvas"
+                        : "border-line bg-surface text-muted hover:bg-canvas"
                     }`}
                   >
                     <SportDot sport={s} size={18} />

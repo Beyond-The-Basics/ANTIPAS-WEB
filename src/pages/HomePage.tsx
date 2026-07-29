@@ -268,7 +268,7 @@ export function HomePage() {
                         className={`flex-1 rounded-lg py-2 text-[12.5px] font-semibold ${
                           a.primary
                             ? "border-none bg-brand text-white hover:bg-brand-dark"
-                            : "border border-line bg-white text-ink-2 hover:bg-canvas"
+                            : "border border-line bg-surface text-ink-2 hover:bg-canvas"
                         }`}
                       >
                         {a.label}

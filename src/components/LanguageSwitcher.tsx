@@ -11,7 +11,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { language, setLanguage } = useLanguage();
   return (
     <div
-      className={`flex flex-none items-center gap-0.5 rounded-full border border-line bg-white p-0.5 ${className}`}
+      className={`flex flex-none items-center gap-0.5 rounded-full border border-line bg-surface p-0.5 ${className}`}
     >
       {LANGUAGES.map((l) => (
         <button

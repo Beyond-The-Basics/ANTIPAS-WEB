@@ -70,7 +70,7 @@ export function PlayerAvailabilityModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-card border border-line bg-white shadow-float"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-card border border-line bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
@@ -107,7 +107,7 @@ export function PlayerAvailabilityModal({
               )}
               <Marker position={center} icon={PIN} />
             </MapContainer>
-            <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
+            <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-surface/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
               {t("playerAvailability.discoverableWithin", { km: availability.radius_km ?? "?" })}
             </div>
           </div>
