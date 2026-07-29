@@ -183,7 +183,7 @@ export function LineupCard({
   };
 
   return (
-    <div className="overflow-hidden rounded-panel border border-line bg-white">
+    <div className="overflow-hidden rounded-panel border border-line bg-surface">
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[.08em] text-muted">

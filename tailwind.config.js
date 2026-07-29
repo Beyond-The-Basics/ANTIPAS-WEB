@@ -1,42 +1,61 @@
 /** @type {import('tailwindcss').Config} */
 // Palette and radii are lifted verbatim from the Kickoff Design prototype
 // ("Kickoff Web Client.dc.html") so screens can be ported without re-deriving values.
+//
+// Colors are CSS variables (RGB triplets, defined in src/styles.css under `:root`/`.dark`) rather
+// than raw hex, so every semantic token below re-themes for dark mode without touching call sites.
+// `withOpacity` keeps Tailwind's opacity modifiers (`bg-brand/10`) working through that indirection.
+function withOpacity(varName) {
+  return ({ opacityValue }) =>
+    opacityValue === undefined
+      ? `rgb(var(${varName}))`
+      : `rgb(var(${varName}) / ${opacityValue})`;
+}
+
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        canvas: "#f4f5f4",
-        ink: "#141414",
-        "ink-2": "#333333",
-        muted: "#6b7280",
-        faint: "#9ca3a0",
-        line: "#e4e6e4",
-        "line-2": "#eceeec",
+        canvas: withOpacity("--color-canvas"),
+        surface: withOpacity("--color-surface"),
+        ink: withOpacity("--color-ink"),
+        "ink-2": withOpacity("--color-ink-2"),
+        muted: withOpacity("--color-muted"),
+        faint: withOpacity("--color-faint"),
+        line: withOpacity("--color-line"),
+        "line-2": withOpacity("--color-line-2"),
         brand: {
-          DEFAULT: "#147A49",
-          dark: "#0f6a3f",
-          deep: "#0f5c37",
-          tint: "#e2f0e9",
+          DEFAULT: withOpacity("--color-brand"),
+          dark: withOpacity("--color-brand-dark"),
+          deep: withOpacity("--color-brand-deep"),
+          tint: withOpacity("--color-brand-tint"),
         },
-        chip: "#eceeec",
-        "chip-2": "#eef0ef",
-        "chip-ink": "#5f6b64",
-        "chip-ink-2": "#8a8f8a",
+        chip: withOpacity("--color-chip"),
+        "chip-2": withOpacity("--color-chip-2"),
+        "chip-ink": withOpacity("--color-chip-ink"),
+        "chip-ink-2": withOpacity("--color-chip-ink-2"),
+        danger: {
+          bg: withOpacity("--color-danger-bg"),
+          border: withOpacity("--color-danger-border"),
+          text: withOpacity("--color-danger-text"),
+        },
+        scrollbar: withOpacity("--color-scrollbar"),
         // The marketing landing page runs a lighter, higher-contrast scale than the signed-in
         // app: white page, #f7f8f7 bands, hairline borders. Namespaced so it can't drift into
         // app screens by accident. Source: "Kickoff Landing.dc.html" design handoff.
         landing: {
-          body: "#4b4f4b",
-          quote: "#2a2d2a",
-          band: "#f7f8f7",
-          tint: "#eaf3ee",
-          line: "#ececec",
-          "line-strong": "#dcdedc",
-          "line-hover": "#bfc3bf",
-          divider: "#f0f0f0",
-          hover: "#f2f3f2",
-          "hover-soft": "#fafbfa",
+          body: withOpacity("--color-landing-body"),
+          quote: withOpacity("--color-landing-quote"),
+          band: withOpacity("--color-landing-band"),
+          tint: withOpacity("--color-landing-tint"),
+          line: withOpacity("--color-landing-line"),
+          "line-strong": withOpacity("--color-landing-line-strong"),
+          "line-hover": withOpacity("--color-landing-line-hover"),
+          divider: withOpacity("--color-landing-divider"),
+          hover: withOpacity("--color-landing-hover"),
+          "hover-soft": withOpacity("--color-landing-hover-soft"),
         },
       },
       borderRadius: {

@@ -500,6 +500,11 @@
     "signOut": "Sign out",
     "stopActingAs": "Stop acting as"
   },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "landing": {
     "header": {
       "navLinks": ["How it works", "What you can do", "Sports", "Player stories"],

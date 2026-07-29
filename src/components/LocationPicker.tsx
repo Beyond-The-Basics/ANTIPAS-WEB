@@ -100,7 +100,7 @@ export function LocationPicker({
           }}
         />
       </MapContainer>
-      <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
+      <div className="pointer-events-none absolute start-2 top-2 z-[1000] rounded-full bg-surface/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-float">
         {resolving ? t("locationPicker.locating") : t("locationPicker.dragOrClick")}
       </div>
     </div>

@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const SIGN_UP_TO = "/signup";
 const SIGN_IN_TO = "/login";
@@ -151,7 +152,7 @@ function Header() {
   const { t } = useTranslation();
   const navLinks = t("landing.header.navLinks", { returnObjects: true }) as string[];
   return (
-    <header className="sticky top-0 z-50 border-b border-landing-line bg-white/[.86] backdrop-blur-[12px]">
+    <header className="sticky top-0 z-50 border-b border-landing-line bg-surface/[.86] backdrop-blur-[12px]">
       <div className={`${CONTAINER} flex h-[70px] items-center gap-[30px]`}>
         <Wordmark />
         <nav className="hidden items-center gap-7 text-sm font-semibold text-landing-body lg:flex">
@@ -162,6 +163,7 @@ function Header() {
           ))}
         </nav>
         <div className="ms-auto flex items-center gap-1.5">
+          <ThemeToggle />
           <LanguageSwitcher />
           <Link
             to={SIGN_IN_TO}
@@ -211,7 +213,7 @@ function Hero() {
           </Link>
           <a
             href="#how"
-            className="inline-flex items-center gap-2.5 rounded-cta border border-landing-line-strong bg-white px-6 py-4 text-base font-bold text-ink transition duration-150 hover:border-landing-line-hover hover:bg-landing-hover-soft hover:text-ink"
+            className="inline-flex items-center gap-2.5 rounded-cta border border-landing-line-strong bg-surface px-6 py-4 text-base font-bold text-ink transition duration-150 hover:border-landing-line-hover hover:bg-landing-hover-soft hover:text-ink"
           >
             <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-landing-tint text-[10px] text-brand">
               ▶
@@ -227,7 +229,7 @@ function Hero() {
                 initials={a.initials}
                 bg={a.bg}
                 size={38}
-                className="-ms-2.5 border-[2.5px] border-white"
+                className="-ms-2.5 border-[2.5px] border-surface"
               />
             ))}
           </div>
@@ -243,7 +245,7 @@ function Hero() {
         <div className="aspect-[4/5] overflow-hidden rounded-photo shadow-hero">
           <Photo src={PHOTO.hero} alt="Players in a street football match in Chefchaouen, Morocco" />
         </div>
-        <div className="absolute start-0 top-11 flex animate-floaty items-center gap-[11px] rounded-[14px] bg-white px-4 py-[13px] shadow-float-card lg:-start-[26px]">
+        <div className="absolute start-0 top-11 flex animate-floaty items-center gap-[11px] rounded-[14px] bg-surface px-4 py-[13px] shadow-float-card lg:-start-[26px]">
           <div className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-brand text-base font-extrabold text-white">
             ⚽
           </div>
@@ -253,7 +255,7 @@ function Hero() {
           </div>
         </div>
         <div
-          className="absolute bottom-[50px] end-0 animate-floaty rounded-[14px] bg-white px-4 py-[13px] shadow-float-card lg:-end-[22px]"
+          className="absolute bottom-[50px] end-0 animate-floaty rounded-[14px] bg-surface px-4 py-[13px] shadow-float-card lg:-end-[22px]"
           style={{ animationDelay: "1.4s" }}
         >
           <div className="mb-[5px] text-[11.5px] font-semibold text-muted">
@@ -306,7 +308,7 @@ function WhatYouCanDo() {
         {features.map((f, i) => (
           <div
             key={f.title}
-            className="rounded-feature border border-landing-line bg-white px-[22px] pb-6 pt-[26px] transition-shadow duration-200 hover:shadow-card-hover"
+            className="rounded-feature border border-landing-line bg-surface px-[22px] pb-6 pt-[26px] transition-shadow duration-200 hover:shadow-card-hover"
           >
             <div className="mb-[18px]">
               <IconChip size={46}>{FEATURE_ICONS[i]}</IconChip>
@@ -337,7 +339,7 @@ function HowItWorks() {
         />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {steps.map((s, i) => (
-            <div key={s.title} className="overflow-hidden rounded-step border border-landing-line bg-white">
+            <div key={s.title} className="overflow-hidden rounded-step border border-landing-line bg-surface">
               <div className="aspect-[16/11]">
                 <Photo src={STEP_IMAGES[i]} alt={s.alt} />
               </div>
@@ -417,7 +419,7 @@ function PlayerStories() {
         />
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {quotes.map((q, i) => (
-            <div key={QUOTE_PEOPLE[i].name} className="rounded-feature border border-landing-line bg-white p-7">
+            <div key={QUOTE_PEOPLE[i].name} className="rounded-feature border border-landing-line bg-surface p-7">
               <div className="mb-3.5 text-[15px] tracking-[2px] text-brand">★★★★★</div>
               <div className="mb-[22px] text-[15.5px] leading-[1.6] text-landing-quote">"{q.body}"</div>
               <div className="flex items-center gap-3">
@@ -508,7 +510,7 @@ function Footer() {
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       <Header />
       <Hero />
       <TrustStrip />

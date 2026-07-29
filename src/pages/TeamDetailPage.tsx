@@ -474,7 +474,7 @@ function LineupSection({
                 className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold ${
                   g.id === currentGameType?.id
                     ? "border-brand bg-brand-tint text-brand-deep"
-                    : "border-line bg-white text-muted hover:bg-canvas"
+                    : "border-line bg-surface text-muted hover:bg-canvas"
                 }`}
               >
                 {g.label}

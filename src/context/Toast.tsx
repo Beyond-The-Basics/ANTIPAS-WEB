@@ -59,9 +59,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`max-w-[380px] rounded-field border bg-white px-3.5 py-2.5 text-[13px] shadow-float ${
+            className={`max-w-[380px] rounded-field border bg-surface px-3.5 py-2.5 text-[13px] shadow-float ${
               t.kind === "error"
-                ? "border-[#d97066] text-[#9b3229]"
+                ? "border-danger-border text-danger-text"
                 : "border-brand-tint text-brand-deep"
             }`}
           >

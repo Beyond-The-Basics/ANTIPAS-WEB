@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { useActingUser } from "../context/ActingUser";
 import { translateApiError } from "../lib/errors";
 
@@ -28,14 +29,15 @@ function AuthShell({
   footer: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-surface">
       <header className="border-b border-landing-line">
         <div className="mx-auto flex h-[70px] w-full max-w-[1180px] items-center px-8">
           <Link to="/" className="flex flex-none items-center gap-[11px] no-underline">
             <img src="/logo-icon.png" alt="" className="h-[34px] w-[34px]" />
             <div className="text-xl font-extrabold tracking-[-0.02em] text-ink">Kickoff</div>
           </Link>
-          <div className="ms-auto">
+          <div className="ms-auto flex items-center gap-1.5">
+            <ThemeToggle />
             <LanguageSwitcher />
           </div>
         </div>
@@ -65,7 +67,7 @@ function Field({
       <div className="mb-1.5 text-[12.5px] font-semibold text-landing-body">{label}</div>
       <input
         {...props}
-        className="w-full rounded-cta border border-landing-line-strong bg-white px-3.5 py-3 text-[15px] text-ink outline-none focus:border-brand"
+        className="w-full rounded-cta border border-landing-line-strong bg-surface px-3.5 py-3 text-[15px] text-ink outline-none focus:border-brand"
       />
       {hint && <div className="mt-1.5 text-[12px] text-faint">{hint}</div>}
     </label>
@@ -76,7 +78,7 @@ function ErrorNote({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="mb-5 rounded-cta border border-[#d97066] bg-[#fdf3f2] px-3.5 py-3 text-[13px] text-[#9b3229]"
+      className="mb-5 rounded-cta border border-danger-border bg-danger-bg px-3.5 py-3 text-[13px] text-danger-text"
     >
       {message}
     </div>

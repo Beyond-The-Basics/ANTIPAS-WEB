@@ -6,6 +6,7 @@ import { api } from "../api/client";
 import type { User } from "../api/types";
 import { useActingUser } from "../context/ActingUser";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 import { Avatar } from "./ui";
 
 const NAV = [
@@ -22,7 +23,7 @@ function Nav({ to, labelKey }: { to: string; labelKey: string }) {
       to={to}
       className={({ isActive }) =>
         `rounded-field px-3 py-2.5 text-[13.5px] font-semibold no-underline ${
-          isActive ? "bg-chip text-ink" : "text-[#6b6a60] hover:text-ink"
+          isActive ? "bg-chip text-ink" : "text-muted hover:text-ink"
         }`
       }
     >
@@ -77,12 +78,12 @@ function ProfileChip() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2.5 rounded-full border border-line bg-white py-1 ps-1 pe-2.5"
+        className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 ps-1 pe-2.5"
       >
         {user ? (
           <Avatar name={user.name} />
         ) : (
-          <div className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-line text-xs font-bold text-[#3a3a3a]">
+          <div className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-line text-xs font-bold text-ink-2">
             ?
           </div>
         )}
@@ -92,7 +93,7 @@ function ProfileChip() {
       </button>
 
       {open && (
-        <div className="absolute end-0 z-30 mt-2 w-64 rounded-tile border border-line bg-white py-1.5 shadow-float">
+        <div className="absolute end-0 z-30 mt-2 w-64 rounded-tile border border-line bg-surface py-1.5 shadow-float">
           {user && (
             <button
               onClick={() => {
@@ -152,7 +153,7 @@ function ProfileChip() {
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-20 border-b border-line bg-white">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex h-[62px] max-w-[1100px] items-center gap-6 px-6">
           <NavLink to="/home" className="flex flex-none items-center gap-2.5 no-underline">
             <img src="/logo-icon.png" alt="" className="h-[30px] w-[30px] flex-none" />
@@ -164,6 +165,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="ms-auto flex items-center gap-3">
+            <ThemeToggle />
             <LanguageSwitcher />
             <ProfileChip />
           </div>

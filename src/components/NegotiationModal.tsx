@@ -353,7 +353,7 @@ export function NegotiationModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-card border border-line bg-white shadow-float"
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-card border border-line bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-1 overflow-y-auto">
@@ -603,7 +603,7 @@ export function NegotiationModal({
                       className={`flex-1 rounded-cta border px-4 py-2.5 text-[13px] font-bold transition-colors ${
                         formBookedBy === myTeamId
                           ? "border-brand bg-brand-tint text-brand-deep"
-                          : "border-line bg-white text-ink hover:bg-canvas"
+                          : "border-line bg-surface text-ink hover:bg-canvas"
                       }`}
                     >
                       {t("negotiation.weBook")}
@@ -614,7 +614,7 @@ export function NegotiationModal({
                       className={`flex-1 rounded-cta border px-4 py-2.5 text-[13px] font-bold transition-colors ${
                         formBookedBy === otherTeamId
                           ? "border-brand bg-brand-tint text-brand-deep"
-                          : "border-line bg-white text-ink hover:bg-canvas"
+                          : "border-line bg-surface text-ink hover:bg-canvas"
                       }`}
                     >
                       {t("negotiation.theyBook")}

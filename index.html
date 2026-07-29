@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo-icon.png" />
     <title>Kickoff API Console</title>
+    <script>
+      // Applied before React mounts so a dark-preferring visitor never sees a light flash.
+      // Mirrors the key/logic in src/context/Theme.tsx — keep the two in sync.
+      (function () {
+        var stored = localStorage.getItem("kickoff:theme");
+        var dark =
+          stored === "dark" ||
+          (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

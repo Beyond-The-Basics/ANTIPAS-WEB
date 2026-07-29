@@ -104,7 +104,7 @@ export function ProfilePage() {
         <div className="h-[88px] bg-stripe-lg" />
         <div className="-mt-8 px-[26px] pb-[26px]">
           <div className="flex items-end gap-4">
-            <div className="flex h-20 w-20 flex-none items-center justify-center rounded-full border-4 border-white bg-line text-[27px] font-bold text-[#3a3a3a] shadow-pin">
+            <div className="flex h-20 w-20 flex-none items-center justify-center rounded-full border-4 border-white bg-line text-[27px] font-bold text-ink-2 shadow-pin">
               {initials(acting.name)}
             </div>
             <div className="flex-1 pb-1.5">
@@ -131,7 +131,7 @@ export function ProfilePage() {
               {sports.map((s) => (
                 <span
                   key={s}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-[5px] text-[11.5px] font-semibold"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-[5px] text-[11.5px] font-semibold"
                 >
                   <span className="flex h-3.5 w-3.5 items-center justify-center rounded bg-brand text-[8px] font-bold text-white">
                     {SPORT_LABEL[s][0]}
@@ -161,7 +161,7 @@ export function ProfilePage() {
               <Label>
                 {t("profile.phone")} <span className="font-normal text-faint">{t("profile.phoneCannotChange")}</span>
               </Label>
-              <div className="mb-3 w-full rounded-lg border border-line bg-[#fafafa] px-3 py-2.5 text-[12.5px] text-muted">
+              <div className="mb-3 w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-[12.5px] text-muted">
                 {acting.phone}
               </div>
               <Label>{t("profile.email")}</Label>
@@ -208,7 +208,7 @@ export function ProfilePage() {
                         className={`flex-1 rounded-field border px-3 py-2.5 text-[12.5px] font-semibold transition-colors ${
                           gender === g
                             ? "border-brand bg-brand-tint text-brand-deep"
-                            : "border-line bg-white text-muted hover:bg-canvas"
+                            : "border-line bg-surface text-muted hover:bg-canvas"
                         }`}
                       >
                         {t(`gender.${g}`)}
@@ -253,7 +253,7 @@ export function ProfilePage() {
                       className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold ${
                         selected
                           ? "border-brand bg-brand-tint text-brand-deep"
-                          : "border-line bg-white text-muted hover:bg-canvas"
+                          : "border-line bg-surface text-muted hover:bg-canvas"
                       }`}
                     >
                       <span aria-hidden className="text-[15px] leading-none">
