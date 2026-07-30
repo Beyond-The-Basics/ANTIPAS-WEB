@@ -189,7 +189,11 @@ export function SignupPage() {
     setError(null);
     try {
       await signup({ name, email, phone, password });
-      navigate(target, { replace: true });
+      // Straight to the code entry: signup already mailed one, and asking for it while the user is
+      // still sitting on the account they just made is the only moment they reliably have the
+      // inbox open. `target` is carried through so a deep link they arrived from still resolves
+      // after verifying, rather than being dropped here.
+      navigate("/verify-email", { replace: true, state: { from: target } });
     } catch (err) {
       setError(messageFor(err, t));
     } finally {

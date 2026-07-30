@@ -18,6 +18,14 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "Search is not open": "errors.searchClosed",
   "Cannot respond to your own search": "errors.cannotRespondOwn",
   "You are already the captain": "errors.alreadyCaptain",
+  // Email verification. The rate-limit message embeds a live countdown ("Please wait 42s…") so it
+  // can't be matched here — 429 is handled by status below instead.
+  "Incorrect code": "errors.otpIncorrect",
+  "That code has expired — request a new one": "errors.otpExpired",
+  "Too many incorrect attempts — request a new code": "errors.otpTooManyAttempts",
+  "No verification is in progress — request a new code": "errors.otpNoneActive",
+  "Could not send the verification email — please try again shortly": "errors.otpSendFailed",
+  "This account has no email address to verify": "errors.otpNoEmail",
 };
 
 function fallbackKeyForStatus(status: number): string {
@@ -26,6 +34,7 @@ function fallbackKeyForStatus(status: number): string {
   if (status === 404) return "errors.notFound";
   if (status === 409) return "errors.conflict";
   if (status === 422) return "errors.invalid";
+  if (status === 429) return "errors.rateLimited";
   if (status >= 500) return "errors.server";
   return "errors.generic";
 }

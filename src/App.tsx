@@ -13,11 +13,16 @@ import { OnboardingPage } from "./pages/OnboardingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { TeamDetailPage } from "./pages/TeamDetailPage";
 import { TeamsPage } from "./pages/TeamsPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
 /**
  * Every in-app screen renders inside the app shell and requires someone to act as — a signed-in
- * user, or a dev impersonation — *and* a completed onboarding profile. The landing, auth and
- * onboarding pages deliberately render outside it (onboarding has nothing to show in the nav yet).
+ * user, or a dev impersonation — *and* a verified email *and* a completed onboarding profile. The
+ * landing, auth, verify-email and onboarding pages deliberately render outside it.
+ *
+ * The order is the product flow: signed-in → verified → onboarded → app. Verification comes before
+ * onboarding because an unverified account is not eligible to use the product at all — the backend
+ * turns its every action away with 403, so the client must never let it past this gate.
  */
 function AppShell() {
   const { user, loading } = useActingUser();
@@ -32,6 +37,9 @@ function AppShell() {
     // Remember where they were headed so login can send them back.
     return <Navigate to="/login" replace state={from} />;
   }
+  if (!user.email_verified) {
+    return <Navigate to="/verify-email" replace state={from} />;
+  }
   if (!user.onboarding_completed) {
     return <Navigate to="/onboarding" replace state={from} />;
   }
@@ -43,7 +51,12 @@ function AppShell() {
   );
 }
 
-/** /onboarding itself only needs a signed-in user — it IS the thing that completes the profile. */
+/**
+ * The signed-in-but-pre-shell routes: /verify-email and /onboarding. Both need a user; /onboarding
+ * additionally needs a verified email, since verification precedes onboarding. /verify-email is the
+ * one place an unverified user is allowed, so it's exempt from that redirect (redirecting it to
+ * itself would loop).
+ */
 function RequireUser() {
   const { user, loading } = useActingUser();
   const location = useLocation();
@@ -53,6 +66,15 @@ function RequireUser() {
     return (
       <Navigate
         to="/login"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
+  }
+  if (!user.email_verified && location.pathname !== "/verify-email") {
+    return (
+      <Navigate
+        to="/verify-email"
         replace
         state={{ from: location.pathname + location.search }}
       />
@@ -71,6 +93,9 @@ export default function App() {
 
       <Route element={<RequireUser />}>
         <Route path="/onboarding" element={<OnboardingPage />} />
+        {/* Outside the shell and not gated on onboarding: someone can arrive here straight from
+            signup, before they have a profile. */}
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Route>
 
       <Route element={<AppShell />}>

@@ -46,6 +46,13 @@ export interface User {
   radius_km: number | null;
 }
 
+/** Reply from every `/verification/email/*` endpoint — deliberately uniform, and deliberately
+ * silent about whether a code exists or how many attempts remain. */
+export interface VerificationStatus {
+  email_verified: boolean;
+  detail: string;
+}
+
 /** Response of `POST /auth/login` and `POST /auth/signup`. */
 export interface AuthTokens {
   access_token: string;
