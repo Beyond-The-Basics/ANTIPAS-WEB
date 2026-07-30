@@ -77,11 +77,7 @@
     "noCode": "Didn't get it?",
     "resend": "Send a new code",
     "resendIn": "Send a new code in {{seconds}}s",
-    "codeSent": "A new code is on its way.",
-    "later": "I'll do this later",
-    "bannerText": "Confirm your email address to secure your account.",
-    "bannerCta": "Confirm",
-    "bannerDismiss": "Dismiss"
+    "codeSent": "A new code is on its way."
   },
   "gender": {
     "male": "Male",

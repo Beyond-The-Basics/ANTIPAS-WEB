@@ -183,16 +183,6 @@ export function VerifyEmailPage() {
               {cooldown > 0 ? t("verifyEmail.resendIn", { seconds: cooldown }) : t("verifyEmail.resend")}
             </button>
           </div>
-
-          <div className="mt-3 text-center text-[13px]">
-            <button
-              type="button"
-              onClick={() => navigate(target, { replace: true })}
-              className="text-landing-body underline-offset-2 hover:underline"
-            >
-              {t("verifyEmail.later")}
-            </button>
-          </div>
         </div>
       </main>
     </div>
