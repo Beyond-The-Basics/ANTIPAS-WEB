@@ -503,6 +503,11 @@
   },
   "layout": {
     "signIn": "دخول",
+    "menu": "القائمة",
+    "openMenu": "حل القائمة",
+    "closeMenu": "سد القائمة",
+    "appearance": "المظهر",
+    "language": "اللغة",
     "viewProfile": "شوف البروفيل",
     "actAs": "دخل كـ",
     "devOnly": "(للمطورين فقط)",

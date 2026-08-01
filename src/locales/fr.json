@@ -503,6 +503,11 @@
   },
   "layout": {
     "signIn": "Se connecter",
+    "menu": "Menu",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "appearance": "Apparence",
+    "language": "Langue",
     "viewProfile": "Voir le profil",
     "actAs": "Agir en tant que",
     "devOnly": "(dev uniquement)",
