@@ -33,6 +33,7 @@ export function VerifyEmailPage() {
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const requestedRef = useRef(false);
 
   // Signup and the email-change flow both send a code before landing here, so the floor starts
   // ticking on arrival rather than only after the first manual resend.
@@ -92,6 +93,31 @@ export function VerifyEmailPage() {
   useEffect(() => {
     if (user?.email_verified) navigate(target, { replace: true });
   }, [user?.email_verified, navigate, target]);
+
+  // Make sure a code is actually on its way when this page loads. Signup and the email-change flow
+  // already send one, but arriving here from a plain login — an existing, still-unverified account —
+  // otherwise leaves the user waiting for a code that was never sent (the signup one has long since
+  // expired). Requesting on load covers every entry point; the backend's resend floor collapses the
+  // just-signed-up case into a 429 we read as the countdown, so this never sends a second email.
+  useEffect(() => {
+    if (requestedRef.current || user?.email_verified) return;
+    requestedRef.current = true;
+    void (async () => {
+      try {
+        await api.post<VerificationStatus>("/verification/email/request");
+        setNotice(t("verifyEmail.codeSent"));
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+      } catch (err) {
+        // A 429 just means a code was already sent moments ago (signup) — adopt its remaining time
+        // rather than surfacing it as an error.
+        if (err instanceof ApiError && err.status === 429) {
+          if (err.retryAfter) setCooldown(err.retryAfter);
+        } else {
+          setError(translateApiError(err, t));
+        }
+      }
+    })();
+  }, [user?.email_verified, t]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
