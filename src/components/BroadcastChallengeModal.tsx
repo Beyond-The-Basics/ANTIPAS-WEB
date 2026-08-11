@@ -6,14 +6,13 @@
 // date, time, pitch, and who books. Each term goes out FIXED or OPEN, and those flags are what
 // gate what an opponent may counter later in NegotiationModal.
 //
-// Three things the design shows that the API cannot back, left out rather than faked (the same
+// Several things the design shows that the API cannot back, left out rather than faked (the same
 // rule the rest of this client follows — see CLAUDE.md "Where the design outruns the API"):
 //   - the audience estimate ("Sent to 14 teams within 10 km at level 6–8"): `Team` has neither
 //     coordinates nor any level/rating concept;
 //   - pitch availability filtering ("free at 18:30 on Sat 8"): no bookings model exists;
-//   - a price on every pitch: the seeded Casablanca directory has none, so the cost callout
-//     appears only for a venue whose rate is actually known.
-// Distance *is* real — the directory carries coordinates and the API returns `distance_km`.
+//   - venue distance, district and price: a pitch is a name in a city and nothing more, so step 3
+//     selects by country and city instead of sorting a shortlist by proximity.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,16 +28,15 @@ import type {
 } from "../api/types";
 import { BOOKING_MODES } from "../api/types";
 import { useActingUser } from "../context/ActingUser";
+import { CITIES_BY_COUNTRY, type Country, isCountry } from "../lib/cities";
 import { translateApiError } from "../lib/errors";
+import { COUNTRIES, DEFAULT_COUNTRY } from "../lib/profile";
 import { SPORT_EMOJI, SPORT_LABEL, initials } from "./ui";
 
 /** Kick-off options offered as chips; anything else goes through `Custom`. */
 const KICKOFF_PRESETS = ["17:00", "18:30", "20:00", "21:30"];
 /** How many days forward the date strip offers. Four fits the 406px width without scrolling. */
 const DATE_STRIP_DAYS = 4;
-/** The directory holds every venue in the city; the design shows a short "near you" shortlist.
- *  The API already returns them nearest-first, so taking the head is the shortlist. */
-const MAX_PITCH_OPTIONS = 6;
 /** `{weekday, day}` alone renders "5 Wed" in English — Intl only puts the weekday first once a
  *  month is present. Every short date in this modal goes through these options. */
 const SHORT_DATE: Intl.DateTimeFormatOptions = {
@@ -46,9 +44,12 @@ const SHORT_DATE: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "short",
 };
-/** The rate is quoted per hour and the wizard collects no duration, so cost is for one hour.
- *  The exact window is settled later, in the negotiation, which does carry an end time. */
-const BILLED_HOURS = 1;
+
+/** The city to open step 3 on: the team's own when it's one we know, else the country's first. */
+function defaultCity(country: Country, teamCity: string | null): string {
+  const cities = CITIES_BY_COUNTRY[country];
+  return cities.find((c) => c.name === teamCity)?.name ?? cities[0]?.name ?? "";
+}
 
 type Step = 1 | 2 | 3 | "live";
 type TermFlag = "fixed" | "open";
@@ -97,6 +98,14 @@ export function BroadcastChallengeModal({
   const [pitchOpen, setPitchOpen] = useState(false);
   const [bookingMode, setBookingMode] = useState<BookingMode>("we_book");
   const [pitches, setPitches] = useState<Pitch[]>([]);
+  // Where to look for a venue. Starts on the team's own country/city — the common case is a home
+  // fixture — but it's a free choice, since nothing ties a pitch to a team.
+  const [pitchCountry, setPitchCountry] = useState<Country>(
+    isCountry(team.country) ? team.country : DEFAULT_COUNTRY,
+  );
+  const [pitchCity, setPitchCity] = useState(() =>
+    defaultCity(isCountry(team.country) ? team.country : DEFAULT_COUNTRY, team.city),
+  );
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState<OpponentSearch | null>(null);
@@ -119,7 +128,21 @@ export function BroadcastChallengeModal({
   }, []);
 
   const selectedPitch = pitches.find((p) => p.id === pitchId) ?? null;
-  const city = selectedPitch?.city ?? team.city ?? "";
+  // The challenge is published against the city being browsed, not the venue's own — they agree
+  // when a venue is picked, and this is still right when the pitch is left open.
+  const city = pitchCity;
+
+  // Moving the search clears the selection: a venue from the city just left must never survive
+  // into the published challenge.
+  const changePitchCountry = (next: Country) => {
+    setPitchCountry(next);
+    setPitchCity(defaultCity(next, null));
+    setPitchId(null);
+  };
+  const changePitchCity = (next: string) => {
+    setPitchCity(next);
+    setPitchId(null);
+  };
 
   // Escape closes, matching every other dismissible surface in the app.
   useEffect(() => {
@@ -130,22 +153,26 @@ export function BroadcastChallengeModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Pitches load once, on entering step 3. `lat`/`lng` come from the captain's saved profile
-  // location — the only real reference point the API has — so a captain who never set one simply
-  // gets the list unsorted and without distances, rather than invented ones.
+  // The venue list follows the country/city selects, so it reloads whenever either changes rather
+  // than once per wizard. Any venue already picked is dropped with it: it belonged to the city
+  // being left, and publishing it against the new one would be wrong.
   useEffect(() => {
-    if (step !== 3 || pitches.length > 0) return;
-    const params = new URLSearchParams();
-    if (team.city) params.set("city", team.city);
-    if (user?.latitude != null && user?.longitude != null) {
-      params.set("lat", String(user.latitude));
-      params.set("lng", String(user.longitude));
-    }
+    if (step !== 3) return;
+    const params = new URLSearchParams({ country: pitchCountry });
+    if (pitchCity) params.set("city", pitchCity);
+    let stale = false;
     api
-      .get<Pitch[]>(`/teams/${team.id}/pitches?${params}`)
-      .then(setPitches)
-      .catch(() => setPitches([]));
-  }, [step, pitches.length, team.id, team.city, user?.latitude, user?.longitude]);
+      .get<Pitch[]>(`/pitches?${params}`)
+      .then((rows) => {
+        if (!stale) setPitches(rows);
+      })
+      .catch(() => {
+        if (!stale) setPitches([]);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [step, pitchCountry, pitchCity]);
 
   const loadResponses = useCallback(async (searchId: string) => {
     await api
@@ -271,7 +298,6 @@ export function BroadcastChallengeModal({
               {step === 3 && (
                 <StepPitch
                   pitches={pitches}
-                  teamId={team.id}
                   pitchId={pitchId}
                   pitchOpen={pitchOpen}
                   selectPitch={(id) => {
@@ -282,9 +308,12 @@ export function BroadcastChallengeModal({
                     setPitchId(null);
                     setPitchOpen(true);
                   }}
+                  pitchCountry={pitchCountry}
+                  setPitchCountry={changePitchCountry}
+                  pitchCity={pitchCity}
+                  setPitchCity={changePitchCity}
                   bookingMode={bookingMode}
                   setBookingMode={setBookingMode}
-                  selectedPitch={selectedPitch}
                   datePrimary={datePrimary}
                   kickoff={kickoff}
                   language={language}
@@ -668,35 +697,38 @@ function StepWhen({
 
 function StepPitch({
   pitches,
-  teamId,
   pitchId,
   pitchOpen,
   selectPitch,
   chooseOpen,
+  pitchCountry,
+  setPitchCountry,
+  pitchCity,
+  setPitchCity,
   bookingMode,
   setBookingMode,
-  selectedPitch,
   datePrimary,
   kickoff,
   language,
   error,
 }: {
   pitches: Pitch[];
-  teamId: string;
   pitchId: string | null;
   pitchOpen: boolean;
   selectPitch: (id: string) => void;
   chooseOpen: () => void;
+  pitchCountry: Country;
+  setPitchCountry: (c: Country) => void;
+  pitchCity: string;
+  setPitchCity: (c: string) => void;
   bookingMode: BookingMode;
   setBookingMode: (m: BookingMode) => void;
-  selectedPitch: Pitch | null;
   datePrimary: string;
   kickoff: string;
   language: string;
   error: string | null;
 }) {
   const { t } = useTranslation();
-  const total = selectedPitch?.price_per_hour != null ? selectedPitch.price_per_hour * BILLED_HOURS : null;
 
   return (
     <>
@@ -710,45 +742,65 @@ function StepPitch({
         })}
       />
 
+      {/* Country and city narrow the directory; the venue select is what they feed. A city with no
+          seeded venues yet is a normal state, not an error — the opponent-chooses option below is
+          always available. */}
+      <div className="mb-3 grid grid-cols-2 gap-2.5">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-bold uppercase tracking-[.05em] text-faint">
+            {t("broadcast.pitchCountry")}
+          </span>
+          <select
+            value={pitchCountry}
+            onChange={(e) => setPitchCountry(e.target.value as Country)}
+            className="rounded-field border border-line bg-surface px-3 py-2.5 text-[13px] font-semibold text-ink"
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-bold uppercase tracking-[.05em] text-faint">
+            {t("broadcast.pitchCity")}
+          </span>
+          <select
+            value={pitchCity}
+            onChange={(e) => setPitchCity(e.target.value)}
+            className="rounded-field border border-line bg-surface px-3 py-2.5 text-[13px] font-semibold text-ink"
+          >
+            {CITIES_BY_COUNTRY[pitchCountry].map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <div className="mb-[18px] flex flex-col gap-2">
-        {pitches.slice(0, MAX_PITCH_OPTIONS).map((p) => {
-          const selected = p.id === pitchId;
-          const home = p.team_id === teamId;
-          const meta = [
-            p.district,
-            p.distance_km != null ? t("broadcast.kmAway", { km: p.distance_km }) : null,
-            p.price_per_hour != null ? t("broadcast.pricePerHour", { price: p.price_per_hour }) : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => selectPitch(p.id)}
-              className={`flex items-center gap-[11px] rounded-tile px-[13px] py-3 text-start transition ${
-                selected ? "border-[1.5px] border-brand bg-brand-tint/40" : "border border-line"
-              }`}
-            >
-              <span className="text-[16px] leading-none">📍</span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={`block truncate text-[13.5px] ${selected ? "font-extrabold" : "font-bold"} text-ink`}
-                >
-                  {p.name}
-                </span>
-                <span className={`block text-[11px] ${selected ? "text-brand-deep" : "text-muted"}`}>
-                  {meta}
-                </span>
-              </span>
-              {home && (
-                <span className="shrink-0 rounded-full bg-brand-tint px-2 py-1 text-[10.5px] font-extrabold text-brand-deep">
-                  {t("broadcast.home")}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-bold uppercase tracking-[.05em] text-faint">
+            {t("broadcast.pitch")}
+          </span>
+          <select
+            value={pitchOpen ? "" : (pitchId ?? "")}
+            onChange={(e) => selectPitch(e.target.value)}
+            disabled={pitches.length === 0}
+            className="rounded-field border border-line bg-surface px-3 py-2.5 text-[13px] font-semibold text-ink disabled:text-faint"
+          >
+            <option value="" disabled>
+              {pitches.length === 0 ? t("broadcast.noPitchesHere") : t("broadcast.selectPitch")}
+            </option>
+            {pitches.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {/* Escape hatch — publishes with pitch = OPEN and no venue at all. */}
         <button
@@ -783,18 +835,6 @@ function StepPitch({
           </button>
         ))}
       </div>
-
-      {/* Only shown when there's a real rate behind it — the seeded directory has no prices. */}
-      {total != null && bookingMode !== "you_book" && (
-        <div className="mt-[18px] flex items-start gap-2.5 rounded-[11px] border border-warn-border bg-warn-bg px-[13px] py-[11px]">
-          <span className="text-[14px] leading-none">💳</span>
-          <span className="text-[11.5px] text-warn-text">
-            {bookingMode === "split_cost"
-              ? t("broadcast.costSplit", { total, half: Math.round(total / 2) })
-              : t("broadcast.costFull", { total })}
-          </span>
-        </div>
-      )}
 
       {error && (
         <div className="mt-[18px] rounded-[11px] border border-danger-border bg-danger-bg px-[13px] py-[11px] text-[11.5px] text-danger-text">

@@ -197,27 +197,14 @@ export interface Match {
   created_at: string;
 }
 
-/** A venue a team has registered — pick one during a negotiation instead of typing a pitch name
- * freehand. Always owned by `team_id`; `is_neutral` is what makes it visible to any negotiation,
- * not just the owning team's own. */
+/** A football venue in a city, from the shared directory. Pitches belong to nobody: a team picks a
+ * country and city, then a venue from what's listed there, or adds one that isn't. */
 export interface Pitch {
   id: string;
-  /** Null for a venue from the seeded public directory, which belongs to no team — that's also
-   * what distinguishes a HOME pitch (`team_id === myTeamId`) from a neutral one. */
-  team_id: string | null;
   name: string;
+  country: string;
   city: string;
-  district: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  /** MAD per hour. Null means unknown, and the cost callout hides rather than guessing. */
-  price_per_hour: number | null;
-  phone: string | null;
-  maps_url: string | null;
-  is_neutral: boolean;
   created_at: string;
-  /** Set only when browsing with `lat`/`lng`; computed per request, never stored. */
-  distance_km: number | null;
 }
 
 /** Free individual broadcast: "I'm available for <sport> in <city>". */

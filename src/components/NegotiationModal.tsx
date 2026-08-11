@@ -117,7 +117,6 @@ export function NegotiationModal({
   const [addingPitch, setAddingPitch] = useState(false);
   const [newPitchName, setNewPitchName] = useState("");
   const [newPitchCity, setNewPitchCity] = useState("");
-  const [newPitchPrice, setNewPitchPrice] = useState("");
 
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<NegotiationMessage[]>([]);
@@ -249,8 +248,13 @@ export function NegotiationModal({
     setFormBookedBy(proposedBookedBy);
     setAddingPitch(false);
     setEditing(true);
+    // Venues are shared, not owned, so the useful list is the directory for the city this
+    // challenge was published in rather than anything derived from the two teams.
+    const params = new URLSearchParams();
+    if (search?.country) params.set("country", search.country);
+    if (search?.city) params.set("city", search.city);
     void api
-      .get<Pitch[]>(`/opponent-applications/${appId}/pitches`)
+      .get<Pitch[]>(`/pitches?${params}`)
       .then(setPitches)
       .catch(() => setPitches([]));
   };
@@ -263,8 +267,7 @@ export function NegotiationModal({
 
   const openAddPitch = () => {
     setNewPitchName("");
-    setNewPitchCity("");
-    setNewPitchPrice("");
+    setNewPitchCity(search?.city ?? "");
     setAddingPitch(true);
   };
 
@@ -273,11 +276,12 @@ export function NegotiationModal({
     const city = newPitchCity.trim();
     if (!name || !city) return;
     void run(async () => {
-      const pitch = await api.post<Pitch>(`/teams/${myTeamId}/pitches`, {
+      // Joins the shared directory rather than this team's own list. Re-adding a venue that's
+      // already there returns the existing row, so a duplicate name is a no-op, not an error.
+      const pitch = await api.post<Pitch>("/pitches", {
         name,
+        country: search?.country ?? undefined,
         city,
-        price_per_hour: newPitchPrice.trim() ? Number(newPitchPrice) : null,
-        is_neutral: false,
       });
       setPitches((prev) => [...prev, pitch]);
       setFormPitch(pitch.name);
@@ -517,11 +521,6 @@ export function NegotiationModal({
                   <div className="flex flex-col gap-2">
                     {pitches.map((pitch) => {
                       const selected = formPitch === pitch.name && formPitchAddress === pitch.city;
-                      const ownershipLabel = pitch.is_neutral
-                        ? t("negotiation.neutralForBoth")
-                        : pitch.team_id === myTeamId
-                          ? t("negotiation.yourCity")
-                          : t("negotiation.theirCity");
                       return (
                         <button
                           key={pitch.id}
@@ -532,12 +531,7 @@ export function NegotiationModal({
                           }`}
                         >
                           <div className="text-[13.5px] font-bold text-ink">{pitch.name}</div>
-                          <div className="text-[12px] text-muted">
-                            {pitch.city} · {ownershipLabel}
-                            {pitch.price_per_hour != null && (
-                              <> · {t("negotiation.pricePerHour", { price: pitch.price_per_hour })}</>
-                            )}
-                          </div>
+                          <div className="text-[12px] text-muted">{pitch.city}</div>
                         </button>
                       );
                     })}
@@ -562,14 +556,6 @@ export function NegotiationModal({
                           placeholder={t("negotiation.addPitchCityPlaceholder")}
                           value={newPitchCity}
                           onChange={(e) => setNewPitchCity(e.target.value)}
-                        />
-                        <input
-                          className="field w-full"
-                          type="number"
-                          min={0}
-                          placeholder={t("negotiation.addPitchPricePlaceholder")}
-                          value={newPitchPrice}
-                          onChange={(e) => setNewPitchPrice(e.target.value)}
                         />
                         <div className="flex items-center gap-2">
                           <Button variant="ghost" size="sm" className="flex-1" onClick={() => setAddingPitch(false)}>
