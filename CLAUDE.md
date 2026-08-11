@@ -102,14 +102,21 @@ The prototype was drawn against the real schema, but parts of it have no endpoin
 render as blanks or are omitted — **do not fill them with sample data**:
 
 - **Ratings, strikes, reputation breakdown** — no fields on the API. Profile shows empty bars.
+- **Broadcast audience estimate** ("Sent to 14 teams within 10 km at level 6–8") — `Team` has
+  neither coordinates nor any level/rating concept, so the live state says what the broadcast
+  actually did instead of counting an audience.
+- **Pitch availability** ("pitches free at 18:30 on Sat 8") — no bookings model, so the venue list
+  is filtered by city and sorted by distance only.
+- **Pitch prices** — the seeded Casablanca directory carries no rates, so the broadcast wizard's
+  cost callout appears only for a venue whose `price_per_hour` is actually set.
 - **Availability map** — `PlayerAvailability` has a city string and no coordinates, so the pin isn't
   persisted and other players can't be plotted. The design's date and team selectors on that screen
   are omitted for the same reason.
 - **"Invite against a broadcast"** — no such route; guest invites attach to a confirmed match, so
   that action lives on Match detail.
 - **Credits** — `charge_publish` is a backend stub, so "costs 1 credit" is descriptive copy only.
-- **No list-game-types endpoint** — publishing an opponent search asks for a `game_type_id` pasted
-  from the seeded catalog.
+- ~~**No list-game-types endpoint**~~ — `GET /game-types` exists; the broadcast wizard's format
+  chips come from it, filtered to the team's sport and disabled above the confirmed roster size.
 - **No aggregate endpoints** — there is no `GET /users/me/teams` or `/users/me/matches`, so
   `useMyTeams` lists all teams and reads each roster to find you (N+1). Home does the same for
   matches. Collapse both into single calls if those endpoints ever land.

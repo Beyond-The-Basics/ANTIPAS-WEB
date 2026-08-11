@@ -41,6 +41,14 @@ export default {
           border: withOpacity("--color-danger-border"),
           text: withOpacity("--color-danger-text"),
         },
+        // Negotiable-term amber (OPEN pills, cost callout). See src/styles.css.
+        warn: {
+          bg: withOpacity("--color-warn-bg"),
+          chip: withOpacity("--color-warn-chip"),
+          border: withOpacity("--color-warn-border"),
+          text: withOpacity("--color-warn-text"),
+          strong: withOpacity("--color-warn-strong"),
+        },
         scrollbar: withOpacity("--color-scrollbar"),
         // The marketing landing page runs a lighter, higher-contrast scale than the signed-in
         // app: white page, #f7f8f7 bands, hairline borders. Namespaced so it can't drift into

@@ -117,6 +117,8 @@ export function TeamsPage() {
           listingCity && isCountry(listingCountry)
             ? CITIES_BY_COUNTRY[listingCountry].find((c) => c.name === listingCity)
             : undefined;
+
+            
         return {
           search,
           team,

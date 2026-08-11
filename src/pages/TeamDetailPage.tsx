@@ -15,6 +15,7 @@ import type {
   TeamRole,
   User,
 } from "../api/types";
+import { BroadcastChallengeModal } from "../components/BroadcastChallengeModal";
 import { LineupCard } from "../components/LineupCard";
 import { NegotiationModal } from "../components/NegotiationModal";
 import { PlayerSearchInvite } from "../components/PlayerSearchInvite";
@@ -263,11 +264,14 @@ export function TeamDetailPage() {
         <OpponentTab
           team={team}
           currentGameType={currentGameType}
+          gameTypes={gameTypes}
+          memberCount={members.length}
           searches={opponentSearches}
           apps={opponentApps}
           teamName={teamName}
           manages={manages}
           act={act}
+          reload={reload}
           openNegotiation={setNegotiation}
         />
       )}
@@ -828,33 +832,31 @@ function RecruitingTab({
 function OpponentTab({
   team,
   currentGameType,
+  gameTypes,
+  memberCount,
   searches,
   apps,
   teamName,
   manages,
   act,
+  reload,
   openNegotiation,
 }: {
   team: Team;
   currentGameType: GameType | null;
+  gameTypes: GameType[];
+  memberCount: number;
   searches: OpponentSearch[];
   apps: OpponentApplication[];
   teamName: (id: string) => string;
   manages: boolean;
   act: (fn: () => Promise<unknown>, message: string) => Promise<unknown>;
+  reload: () => Promise<void>;
   openNegotiation: (app: OpponentApplication) => void;
 }) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
-  const [open, setOpen] = useState(false);
-  const [country, setCountry] = useState<Country>(
-    isCountry(team.country) ? team.country : (COUNTRIES[0] as Country),
-  );
-  const [city, setCity] = useState(
-    isCountry(team.country) && team.city && findCity(team.country, team.city) ? team.city : "",
-  );
-  const [pitch, setPitch] = useState("");
-  const [date, setDate] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   if (!team.completed) {
     return (
@@ -866,34 +868,28 @@ function OpponentTab({
     );
   }
 
-  const publish = async () => {
-    // No game_type_id in the body — the search inherits the team's own lineup type. The date/time
-    // and pitch are the starting proposal; they get finalised in the negotiation chat.
-    await act(
-      () =>
-        api.post(`/teams/${team.id}/opponent-searches`, {
-          city,
-          country,
-          pitch,
-          date: new Date(date).toISOString(),
-        }),
-      t("teamDetail.opponentSearchPublished"),
-    ).then(() => {
-      setPitch("");
-      setDate("");
-      setOpen(false);
-    });
-  };
-
   return (
     <div>
-      {searches.length === 0 ? (
+      {wizardOpen && (
+        <BroadcastChallengeModal
+          team={team}
+          gameTypes={gameTypes}
+          memberCount={memberCount}
+          teamName={teamName}
+          onClose={() => setWizardOpen(false)}
+          onPublished={() => void reload()}
+        />
+      )}
+      {/* The broadcast CTA is the tab's primary action, so it sits outside the empty state — a
+          team that already has a listing (open, withdrawn or expired) must still be able to put
+          out another challenge. */}
+      {manages && (
         <Card className="mb-5 px-[18px] py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold">{t("teamDetail.noOpenOpponentSearch")}</div>
+              <div className="text-sm font-semibold">{t("broadcast.trigger")}</div>
               <div className="mt-0.5 text-[12.5px] text-muted">
-                {t("teamDetail.publishOpponentSearchHint")}
+                {t("broadcast.triggerHint")}
                 {currentGameType && (
                   <>
                     {" "}
@@ -902,79 +898,28 @@ function OpponentTab({
                 )}
               </div>
             </div>
-            {manages && !open && (
-              <Button size="sm" onClick={() => setOpen(true)}>
-                {t("teamDetail.publishOpponentSearch")}
-              </Button>
-            )}
+            <Button size="sm" onClick={() => setWizardOpen(true)}>
+              {t("broadcast.trigger")}
+            </Button>
           </div>
-          {open && (
-            <div className="mt-4 flex flex-wrap items-end gap-2.5 border-t border-line-2 pt-4">
-              <div>
-                <Label>{t("teamDetail.country")}</Label>
-                <select
-                  className="field !text-[13px]"
-                  value={country}
-                  onChange={(e) => {
-                    setCountry(e.target.value as Country);
-                    setCity("");
-                  }}
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>{t("teamDetail.city")}</Label>
-                <select
-                  className="field !text-[13px]"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                >
-                  <option value="">{t("teamDetail.select")}</option>
-                  {CITIES_BY_COUNTRY[country].map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>{t("teamDetail.pitch")}</Label>
-                <input
-                  className="field w-[150px]"
-                  placeholder={t("teamDetail.pitchPlaceholder")}
-                  value={pitch}
-                  onChange={(e) => setPitch(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>{t("teamDetail.dateTime")}</Label>
-                <input
-                  type="datetime-local"
-                  className="field"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              <Button disabled={!city || !pitch || !date} onClick={publish}>
-                {t("teamDetail.publish")}
-              </Button>
-              <Button variant="ghost" onClick={() => setOpen(false)}>
-                {t("teamDetail.cancel")}
-              </Button>
-            </div>
-          )}
+        </Card>
+      )}
+      {searches.length === 0 ? (
+        <Card className="mb-5 px-[18px] py-4">
+          <div className="text-sm font-semibold">{t("teamDetail.noOpenOpponentSearch")}</div>
+          <div className="mt-0.5 text-[12.5px] text-muted">
+            {t("teamDetail.publishOpponentSearchHint")}
+          </div>
         </Card>
       ) : (
         searches.map((s) => (
           <Card key={s.id} className="mb-5 flex items-center justify-between gap-3 px-[18px] py-4">
             <div className="min-w-0">
               <div className="text-sm font-semibold">
-                {dateLabel(s.date, language)} · {s.city} · {s.pitch}
+                {/* `pitch` is null when the broadcast left the venue for the opponent to pick,
+                    so say that rather than trailing a bare separator. */}
+                {dateLabel(s.date, language)} · {s.city} ·{" "}
+                {s.pitch ?? t("broadcast.opponentChooses")}
               </div>
               <div className="mt-0.5 text-[12.5px] text-muted">
                 {t("teamDetail.costsCreditExpiresIn", { time: expiresLabel(s.expires_at, t) })}

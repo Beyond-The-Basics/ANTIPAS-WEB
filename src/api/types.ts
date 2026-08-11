@@ -116,6 +116,13 @@ export interface RosterApplication {
   created_at: string;
 }
 
+/** Who pays for and reserves the pitch, declared when the challenge is broadcast. `split_cost` is
+ * why this isn't a team id — the negotiation's `booked_by_team_id` can't express "we book but you
+ * owe half". */
+export type BookingMode = "we_book" | "you_book" | "split_cost";
+
+export const BOOKING_MODES: BookingMode[] = ["we_book", "you_book", "split_cost"];
+
 export interface OpponentSearch {
   id: string;
   team_id: string;
@@ -123,8 +130,16 @@ export interface OpponentSearch {
   game_type_id: string;
   city: string;
   country: string | null;
-  pitch: string;
+  /** Null when the broadcast left the venue open for the opponent to choose. */
+  pitch: string | null;
+  pitch_id: string | null;
   date: string; // ISO datetime (date + time)
+  /** A second kickoff the publisher would equally accept. Its presence is what makes the date
+   * term negotiable — there is no separate flag. */
+  date_alt: string | null;
+  time_open: boolean;
+  booking_mode: BookingMode;
+  note: string | null;
   status: ListingStatus;
   expires_at: string;
   created_at: string;
@@ -187,12 +202,22 @@ export interface Match {
  * not just the owning team's own. */
 export interface Pitch {
   id: string;
-  team_id: string;
+  /** Null for a venue from the seeded public directory, which belongs to no team — that's also
+   * what distinguishes a HOME pitch (`team_id === myTeamId`) from a neutral one. */
+  team_id: string | null;
   name: string;
   city: string;
+  district: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** MAD per hour. Null means unknown, and the cost callout hides rather than guessing. */
   price_per_hour: number | null;
+  phone: string | null;
+  maps_url: string | null;
   is_neutral: boolean;
   created_at: string;
+  /** Set only when browsing with `lat`/`lng`; computed per request, never stored. */
+  distance_km: number | null;
 }
 
 /** Free individual broadcast: "I'm available for <sport> in <city>". */

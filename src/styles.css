@@ -30,6 +30,14 @@
   --color-danger-text: 155 50 41;
   --color-scrollbar: 216 214 207;
 
+  /* Amber "this term is still negotiable" scale — the OPEN pill and the cost callout on the
+     broadcast wizard. Distinct from `danger`: an open term is an invitation, not a problem. */
+  --color-warn-bg: 255 251 235;
+  --color-warn-chip: 254 243 199;
+  --color-warn-border: 253 230 138;
+  --color-warn-text: 146 64 14;
+  --color-warn-strong: 180 83 9;
+
   --color-landing-body: 75 79 75;
   --color-landing-quote: 42 45 42;
   --color-landing-band: 247 248 247;
@@ -63,6 +71,13 @@
   --color-danger-border: 221 123 111;
   --color-danger-text: 242 168 158;
   --color-scrollbar: 58 61 58;
+
+  /* Amber inverts the same way the greens do: deep muted fills, light text. */
+  --color-warn-bg: 45 34 12;
+  --color-warn-chip: 61 46 16;
+  --color-warn-border: 92 69 23;
+  --color-warn-text: 251 211 141;
+  --color-warn-strong: 245 189 106;
 
   --color-landing-body: 199 203 199;
   --color-landing-quote: 238 240 238;
