@@ -118,6 +118,12 @@
   }
 }
 
+/* Sora and Instrument Sans carry no Arabic glyphs; Rubik does, and matches their weight range. */
+:lang(ar) .font-display,
+:lang(ar) .font-body {
+  font-family: Rubik, system-ui, sans-serif;
+}
+
 /* Leaflet paints its own controls; nudge them onto the Kickoff palette. */
 .leaflet-container {
   font: inherit;

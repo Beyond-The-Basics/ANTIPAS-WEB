@@ -107,29 +107,18 @@
   },
   "discover": {
     "title": "Discover",
-    "subtitle": "Find teams, opponents, guests, and players near you",
     "allSports": "All sports",
     "allCities": "All cities",
-    "teamsRecruiting": "Teams recruiting",
-    "teamsSeekingOpponent": "Teams seeking an opponent",
-    "teamsNeedingGuest": "Teams needing a guest",
-    "noneFound": "None found.",
     "apply": "Apply",
     "applied": "Applied",
     "pickActingFirst": "Pick who you're acting as first",
-    "respondAsPlaceholder": "as…",
     "pickChallengingTeam": "Pick which of your teams is challenging",
     "challenge": "Challenge",
     "challengeSent": "Challenge sent",
     "offerToSub": "Offer to sub",
     "offered": "Offered",
-    "availablePlayersIn": "Available players in {{place}}",
-    "clickToInvite": "· click a pin or a card to view and invite",
     "noPlayersPlotted": "No players plotted here yet",
-    "noPlayersHere": "No players available here.",
     "myApplications": "My applications & invites",
-    "pickActingToSeeApps": "Pick who you're acting as to see your applications.",
-    "noneYet": "None yet.",
     "rosterInvitationFrom": "Roster invitation from {{team}}",
     "rosterApplicationTo": "Roster application to {{team}}",
     "decline": "Decline",
@@ -141,7 +130,62 @@
     "guestInvitationFrom": "Guest invitation from {{team}}",
     "guestOfferTo": "Guest offer to {{team}}",
     "viewMatch": "View the match",
-    "acceptedGuest": "Accepted — you're a guest in this match"
+    "acceptedGuest": "Accepted — you're a guest in this match",
+    "liveListings_one": "{{count}} live listing in {{place}}",
+    "liveListings_other": "{{count}} live listings in {{place}}",
+    "broadcast": "Broadcast a challenge",
+    "tabs": {
+      "matches": "Matches",
+      "players": "Players",
+      "teams": "Teams recruiting"
+    },
+    "filters": {
+      "sport": "Sport",
+      "country": "Country",
+      "city": "City",
+      "when": "Date"
+    },
+    "when": {
+      "any": "Any date",
+      "today": "Today",
+      "weekend": "This weekend",
+      "week": "Next 7 days"
+    },
+    "map": "Map",
+    "view": "View",
+    "invite": "Invite",
+    "challengeAs": "Challenge as {{team}}",
+    "pitchOpen": "pitch still open",
+    "closesIn": "Closes in {{time}}",
+    "withinKm": "Within {{km}} km",
+    "noRadius": "No radius set",
+    "recruitingPlayers": "Recruiting players",
+    "permanentSpot": "Permanent roster spot",
+    "needsGuest": "Needs a guest",
+    "oneMatchSpot": "One match · view it",
+    "sort": {
+      "kickoff": "sorted by kick-off",
+      "newest": "newest first",
+      "closing": "closing soonest"
+    },
+    "showing": "Showing {{shown}} of {{total}} · {{sort}}",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less",
+    "retry": "Try again",
+    "publishAvailability": "Publish availability",
+    "widen": {
+      "anyDate": "Any date",
+      "allCities": "All of {{country}}",
+      "allSports": "All sports"
+    },
+    "empty": {
+      "matchesTitle": "No team is looking for a match here yet",
+      "matchesBody": "Broadcast a challenge and teams nearby can take it on.",
+      "playersTitle": "No players are available here yet",
+      "playersBody": "Publish your own availability so captains nearby can find you.",
+      "teamsTitle": "No team is recruiting here yet",
+      "teamsBody": "Publish your availability and captains will invite you."
+    }
   },
   "teams": {
     "title": "Teams",

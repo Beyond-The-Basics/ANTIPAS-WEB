@@ -2,7 +2,7 @@
 // The prototype expresses these as inline style objects (pill(), rolePill(), dot(), tabStyle(), …);
 // here they are components so the palette lives in one place.
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Sport, TeamRole } from "../api/types";
@@ -15,7 +15,8 @@ import i18n from "../i18n";
  * `useTranslation()` for its own strings, which re-renders it on language change anyway. */
 function labelLookup<K extends string>(namespace: string): Record<K, string> {
   return new Proxy({} as Record<K, string>, {
-    get: (_target, prop: string) => i18n.t(`${namespace}.${prop}`),
+    // Tooling (React Refresh, devtools) probes exports with Symbol keys; those aren't labels.
+    get: (_target, prop) => (typeof prop === "symbol" ? undefined : i18n.t(`${namespace}.${prop}`)),
   });
 }
 
@@ -209,7 +210,17 @@ export function Empty({ children }: { children: ReactNode }) {
 
 // --- controls -----------------------------------------------------------------
 
-type ButtonVariant = "primary" | "ghost";
+type ButtonVariant = "primary" | "accent" | "ghost";
+
+/** Inline loading indicator; inherits the text color of wherever it sits. */
+export function Spinner({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block h-3 w-3 flex-none animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
+    />
+  );
+}
 
 export function Button({
   children,
@@ -217,35 +228,139 @@ export function Button({
   variant = "primary",
   size = "md",
   disabled,
+  busy = false,
   type = "button",
   className = "",
   title,
 }: {
   children: ReactNode;
   onClick?: (e: React.MouseEvent) => void;
+  /** `accent` is the Discover 7b deep green (#0f5c37); `primary` is the app-wide brand green. */
   variant?: ButtonVariant;
-  size?: "sm" | "md";
+  /** `row` and `cta` are the Discover 7b list-action and page-CTA sizes. */
+  size?: "sm" | "md" | "row" | "cta";
   disabled?: boolean;
+  /** Shows a spinner and blocks re-clicks without greying the button out. */
+  busy?: boolean;
   type?: "button" | "submit";
   className?: string;
   title?: string;
 }) {
-  const tone =
-    variant === "primary"
-      ? "bg-brand text-white border border-transparent hover:bg-brand-dark"
-      : "bg-surface text-ink-2 border border-line hover:bg-canvas";
-  const dims =
-    size === "sm" ? "px-3 py-1.5 text-[12.5px] rounded-[7px]" : "px-4 py-2.5 text-[13px] rounded-field";
+  const tone = {
+    primary: "bg-brand text-white border border-transparent hover:bg-brand-dark",
+    // Dark mode's brand-deep is a light text green, so the filled button falls back to brand there.
+    accent:
+      "bg-brand-deep text-white border border-transparent hover:bg-brand-deep/90 dark:bg-brand dark:hover:bg-brand-dark",
+    ghost: "bg-surface text-ink-2 border border-line hover:bg-canvas",
+  }[variant];
+  const dims = {
+    sm: "px-3 py-1.5 text-[12.5px] rounded-[7px] font-semibold",
+    md: "px-4 py-2.5 text-[13px] rounded-field font-semibold",
+    row: "px-[15px] py-[9px] text-[12.5px] rounded-field font-bold whitespace-nowrap",
+    cta: "px-[18px] py-[11px] text-[13px] rounded-btn font-bold whitespace-nowrap",
+  }[size];
   return (
     <button
       type={type}
       title={title}
       disabled={disabled}
-      onClick={onClick}
-      className={`flex-none font-semibold ${tone} ${dims} ${className}`}
+      aria-busy={busy || undefined}
+      onClick={busy ? undefined : onClick}
+      className={`inline-flex flex-none items-center justify-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${tone} ${dims} ${className}`}
     >
+      {busy && <Spinner />}
       {children}
     </button>
+  );
+}
+
+/**
+ * A text trigger ("Casablanca ▾") that opens a menu of options — the Discover 7b replacement for
+ * grey `<select>`s. Closes on outside click and Escape.
+ */
+export function MenuSelect<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  ariaLabel,
+  trigger,
+  align = "end",
+}: {
+  value?: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  /** Trigger text; defaults to the selected option's label. */
+  label?: ReactNode;
+  ariaLabel: string;
+  /** Render a custom trigger (e.g. a Button) instead of the muted text one. */
+  trigger?: (props: { open: boolean; toggle: () => void }) => ReactNode;
+  align?: "start" | "end";
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const toggle = () => setOpen((v) => !v);
+  const current = options.find((o) => o.value === value);
+
+  return (
+    <div className="relative flex-none" ref={ref}>
+      {trigger ? (
+        trigger({ open, toggle })
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={ariaLabel}
+          className="whitespace-nowrap rounded-[6px] text-[12.5px] text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {label ?? current?.label} <span aria-hidden>▾</span>
+        </button>
+      )}
+      {open && (
+        <div
+          role="listbox"
+          aria-label={ariaLabel}
+          className={`absolute top-full z-30 mt-2 max-h-72 min-w-[190px] overflow-y-auto rounded-tile border border-line bg-surface py-1.5 shadow-float ${
+            align === "end" ? "end-0" : "start-0"
+          }`}
+        >
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="option"
+              aria-selected={o.value === value}
+              onClick={() => {
+                setOpen(false);
+                onChange(o.value);
+              }}
+              className={`block w-full whitespace-nowrap px-4 py-2 text-start text-[13px] hover:bg-canvas ${
+                o.value === value ? "font-bold text-brand-deep" : "text-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

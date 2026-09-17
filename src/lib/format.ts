@@ -85,3 +85,12 @@ export function relativeTime(value: string | null | undefined, t: TFunction): st
   const days = Math.floor(hours / 24);
   return t(days === 1 ? "common.time.dayAgo" : "common.time.daysAgo", { count: days });
 }
+
+/** "Sat 8 Aug · 18:30" — Discover's kick-off line: short day, day-first date, 24h clock. */
+export function kickoffLabel(value: string | null | undefined, language: string): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const day = d.toLocaleDateString(language, { weekday: "short", day: "numeric", month: "short" });
+  return `${day} · ${timeOnlyLabel(value, language)}`;
+}
