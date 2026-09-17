@@ -1,0 +1,139 @@
+name: CD
+
+on:
+  # Starts when the CI workflow finishes (success or failure).
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read # needed to download the artifact from the CI run
+
+# One deploy at a time, and never cancel a deploy halfway through.
+concurrency:
+  group: cd-frontend
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy to staging
+    # Only deploy when CI succeeded, for a push to main in THIS repository.
+    # (The branch filter above matches branch names only, so a fork's pull
+    # request from a branch called "main" would otherwise pass it.)
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: staging
+      url: ${{ vars.SITE_URL }}
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      # Check out the exact commit CI tested (for wrangler.jsonc), not
+      # whatever is newest on main.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          node-version: "22"
+          cache: npm
+
+      - name: Download build from the CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Write config.json for staging
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          jq -n --arg apiUrl "$API_URL" --arg environment "staging" --arg version "$SHA" \
+            '{apiUrl: $apiUrl, environment: $environment, version: $version}' > dist/config.json
+          cat dist/config.json
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env staging
+
+      - name: Check the new version is live
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            live=$(curl -fsS "$SITE_URL/config.json" | jq -r .version || true)
+            if [ "$live" = "$SHA" ]; then
+              echo "✅ staging is serving $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt: live version is '$live', waiting..."
+            sleep 10
+          done
+          echo "::error::staging did not serve $SHA after deploy"
+          exit 1
+
+  deploy-production:
+    name: Deploy to production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Required reviewers on this GitHub Environment make this job wait for approval.
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          node-version: "22"
+          cache: npm
+
+      - name: Download the same build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Write config.json for production
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          jq -n --arg apiUrl "$API_URL" --arg environment "production" --arg version "$SHA" \
+            '{apiUrl: $apiUrl, environment: $environment, version: $version}' > dist/config.json
+          cat dist/config.json
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production
+
+      - name: Check the new version is live
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            live=$(curl -fsS "$SITE_URL/config.json" | jq -r .version || true)
+            if [ "$live" = "$SHA" ]; then
+              echo "✅ production is serving $SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt: live version is '$live', waiting..."
+            sleep 10
+          done
+          echo "::error::production did not serve $SHA after deploy"
+          exit 1
