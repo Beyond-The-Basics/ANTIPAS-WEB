@@ -86,43 +86,11 @@ export function relativeTime(value: string | null | undefined, t: TFunction): st
   return t(days === 1 ? "common.time.dayAgo" : "common.time.daysAgo", { count: days });
 }
 
-/** "Saturday, 8 Aug 2026" — the negotiation card's Date row, spelled out in full. */
-export function fullDateLabel(value: string | null | undefined): string {
+/** "Sat 8 Aug · 18:30" — Discover's kick-off line: short day, day-first date, 24h clock. */
+export function kickoffLabel(value: string | null | undefined, language: string): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-/** "18:30" — 24h clock, matching the negotiation card's Time row. */
-export function timeOnlyLabel(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
-/** "18:30 – 20:00", or just the start time when there's no end. */
-export function timeRangeLabel(start: string | null | undefined, end: string | null | undefined): string {
-  if (!start) return "—";
-  return end ? `${timeOnlyLabel(start)} – ${timeOnlyLabel(end)}` : timeOnlyLabel(start);
-}
-
-/** "just now" / "2h ago" / "5 days ago" — Offer History timestamps. */
-export function relativeTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const ms = Date.now() - new Date(value).getTime();
-  if (Number.isNaN(ms)) return "—";
-  if (ms < 60_000) return "just now";
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  const day = d.toLocaleDateString(language, { weekday: "short", day: "numeric", month: "short" });
+  return `${day} · ${timeOnlyLabel(value, language)}`;
 }

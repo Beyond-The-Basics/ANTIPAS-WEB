@@ -107,6 +107,11 @@ render as blanks or are omitted — **do not fill them with sample data**:
   are omitted for the same reason.
 - **"Invite against a broadcast"** — no such route; guest invites attach to a confirmed match, so
   that action lives on Match detail.
+- **Discover rows (design handoff 7b)** — the design shows team level, distance, and which term an
+  offer left negotiable ("They book" / "Time open"). None of those exist on the listing schemas, so
+  rows show sport · city and the term column shows when the listing closes. There is also no
+  per-tab counts endpoint: Discover fetches every listing type and counts client-side, and the date
+  filter applies to Matches only (roster/guest searches carry no date).
 - **Credits** — `charge_publish` is a backend stub, so "costs 1 credit" is descriptive copy only.
 - **No list-game-types endpoint** — publishing an opponent search asks for a `game_type_id` pasted
   from the seeded catalog.
