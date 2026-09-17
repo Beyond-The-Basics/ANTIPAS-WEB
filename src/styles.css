@@ -17,10 +17,10 @@
   --color-faint: 156 163 160;
   --color-line: 228 230 228;
   --color-line-2: 236 238 236;
-  --color-brand: 20 122 73;
-  --color-brand-dark: 15 106 63;
-  --color-brand-deep: 15 92 55;
-  --color-brand-tint: 226 240 233;
+  --color-brand: 198 40 40;
+  --color-brand-dark: 169 30 30;
+  --color-brand-deep: 142 27 27;
+  --color-brand-tint: 251 233 233;
   --color-chip: 236 238 236;
   --color-chip-2: 238 240 239;
   --color-chip-ink: 95 107 100;
@@ -33,7 +33,7 @@
   --color-landing-body: 75 79 75;
   --color-landing-quote: 42 45 42;
   --color-landing-band: 247 248 247;
-  --color-landing-tint: 234 243 238;
+  --color-landing-tint: 252 238 238;
   --color-landing-line: 236 236 236;
   --color-landing-line-strong: 220 222 220;
   --color-landing-line-hover: 191 195 191;
@@ -51,10 +51,10 @@
   --color-faint: 107 112 108;
   --color-line: 42 46 43;
   --color-line-2: 35 38 35;
-  --color-brand: 20 122 73;
-  --color-brand-dark: 26 143 87;
-  --color-brand-deep: 63 174 120;
-  --color-brand-tint: 22 53 39;
+  --color-brand: 198 40 40;
+  --color-brand-dark: 220 60 60;
+  --color-brand-deep: 240 128 128;
+  --color-brand-tint: 60 24 24;
   --color-chip: 35 38 36;
   --color-chip-2: 43 46 43;
   --color-chip-ink: 183 189 184;
@@ -67,7 +67,7 @@
   --color-landing-body: 199 203 199;
   --color-landing-quote: 238 240 238;
   --color-landing-band: 23 26 24;
-  --color-landing-tint: 20 38 32;
+  --color-landing-tint: 44 22 22;
   --color-landing-line: 42 45 42;
   --color-landing-line-strong: 54 58 54;
   --color-landing-line-hover: 72 76 72;

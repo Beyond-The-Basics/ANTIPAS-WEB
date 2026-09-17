@@ -15,7 +15,7 @@ import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
 
 const PIN = L.divIcon({
   className: "",
-  html: '<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:#147A49;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
+  html: '<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:#C62828;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
   iconSize: [24, 24],
   iconAnchor: [12, 24],
 });
