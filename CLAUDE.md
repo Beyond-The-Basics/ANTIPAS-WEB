@@ -66,8 +66,10 @@ Vite + React 18 + TypeScript + Tailwind v3 + react-router v6.
 - `tailwind.config.js` — the Kickoff palette lifted verbatim from the prototype. Use the semantic
   names (`brand`, `canvas`, `line`, `muted`, `chip`) rather than raw hex.
 
-**Tailwind is pinned to v3.** v4's `@tailwindcss/oxide` requires Node >= 20 and this project targets
-Node 18; on 18 the native binary silently fails to install and the build breaks.
+**Node 22 (>= 20.19).** Vite 8 and `@vitejs/plugin-react` 6 refuse older Node, and `wrangler` 4 needs
+>= 20.3; CI runs 22. Keep `@vitejs/plugin-react` on a major whose peer range includes the installed
+Vite — a mismatch fails `npm ci` with ERESOLVE. **Tailwind stays on v3** for now: moving to v4 is a
+config/CSS migration, not a version bump.
 
 ## Multi-language
 
