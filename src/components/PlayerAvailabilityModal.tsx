@@ -18,7 +18,7 @@ import { Avatar, Button, Pill, SPORT_LABEL, SectionLabel } from "./ui";
 
 const PIN = L.divIcon({
   className: "",
-  html: '<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#147A49;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
+  html: '<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#C62828;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
   iconSize: [22, 22],
   iconAnchor: [11, 22],
 });
@@ -102,7 +102,7 @@ export function PlayerAvailabilityModal({
                 <Circle
                   center={center}
                   radius={availability.radius_km * 1000}
-                  pathOptions={{ color: "#147A49", fillColor: "#147A49", fillOpacity: 0.12, weight: 1.5 }}
+                  pathOptions={{ color: "#C62828", fillColor: "#C62828", fillOpacity: 0.12, weight: 1.5 }}
                 />
               )}
               <Marker position={center} icon={PIN} />

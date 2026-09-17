@@ -30,7 +30,7 @@ import { useUsers } from "../lib/useMyTeams";
 /** Teardrop pin from the prototype, as a divIcon so no marker image assets are bundled. */
 const PIN = L.divIcon({
   className: "",
-  html: '<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:#147A49;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
+  html: '<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;background:#C62828;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
   iconSize: [24, 24],
   iconAnchor: [12, 24],
 });
@@ -201,7 +201,7 @@ export function AvailabilityPage() {
             <Circle
               center={position}
               radius={radiusKm * 1000}
-              pathOptions={{ color: "#147A49", fillColor: "#147A49", fillOpacity: 0.12, weight: 1.5 }}
+              pathOptions={{ color: "#C62828", fillColor: "#C62828", fillOpacity: 0.12, weight: 1.5 }}
             />
             <Marker
               position={position}

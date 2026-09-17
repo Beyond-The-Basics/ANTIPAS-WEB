@@ -134,7 +134,7 @@ export const SPORT_EMOJI: Record<Sport, string> = {
 
 export const SPORT_LABEL = labelLookup<Sport>("sports");
 
-/** Prototype `dot()` — a rounded green square carrying the sport's initial. */
+/** Prototype `dot()` — a rounded brand-colored square carrying the sport's initial. */
 export function SportDot({ sport, size = 22 }: { sport: Sport; size?: number }) {
   return (
     <div
@@ -235,7 +235,7 @@ export function Button({
 }: {
   children: ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-  /** `accent` is the Discover 7b deep green (#0f5c37); `primary` is the app-wide brand green. */
+  /** `accent` is the deeper brand shade (brand-deep); `primary` is the app-wide brand color. */
   variant?: ButtonVariant;
   /** `row` and `cta` are the Discover 7b list-action and page-CTA sizes. */
   size?: "sm" | "md" | "row" | "cta";
@@ -248,7 +248,7 @@ export function Button({
 }) {
   const tone = {
     primary: "bg-brand text-white border border-transparent hover:bg-brand-dark",
-    // Dark mode's brand-deep is a light text green, so the filled button falls back to brand there.
+    // Dark mode's brand-deep is a light text shade, so the filled button falls back to brand there.
     accent:
       "bg-brand-deep text-white border border-transparent hover:bg-brand-deep/90 dark:bg-brand dark:hover:bg-brand-dark",
     ghost: "bg-surface text-ink-2 border border-line hover:bg-canvas",
