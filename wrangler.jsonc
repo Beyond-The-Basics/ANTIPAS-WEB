@@ -11,7 +11,7 @@
       "name": "antipas-frontend-staging"
     },
     "production": {
-      "name": "antipas-frontend-production"
+      "name": "antipas-frontend"
     }
   }
 }
