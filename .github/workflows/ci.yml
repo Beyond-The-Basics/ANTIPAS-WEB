@@ -15,9 +15,9 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # Vite 8 and @vitejs/plugin-react 6 need Node ^20.19 || >=22.12, and wrangler 4 >= 20.3.
           # Keep CI on the same major the project targets.
@@ -34,9 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [typecheck]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -46,3 +46,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # CD (cd.yml) deploys exactly this build rather than rebuilding, so it must be uploaded under
+      # the name CD downloads. Only pushes to main deploy; PR runs skip the upload.
+      - name: Upload build for CD
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
