@@ -105,35 +105,6 @@
     "step3Title": "Rate your game",
     "step3Subtitle": "Optional self-ratings — helps teammates and opponents know what to expect."
   },
-  "home": {
-    "title": "Home",
-    "noActingSubtitle": "Pick who you're acting as from the chip in the top right to see your matches and requests.",
-    "nobodySelected": "Nobody selected.",
-    "greeting": "Good to see you, {{name}}",
-    "upcomingMatches": "Upcoming matches",
-    "noMatches": "No confirmed matches yet.",
-    "requests": "Requests ({{count}})",
-    "noRequests": "No requests right now.",
-    "decline": "Decline",
-    "declined": "Declined",
-    "accept": "Accept",
-    "accepted": "Accepted",
-    "confirm": "Confirm",
-    "confirmed": "Confirmed",
-    "withdraw": "Withdraw",
-    "withdrawn": "Withdrawn",
-    "rosterWantsToJoin": "{{user}} wants to join {{team}}",
-    "rosterApplication": "Roster application",
-    "opponentWantsToPlay": "{{team}} wants to play {{yourTeam}}",
-    "opponentApplication": "Opponent application",
-    "rosterInvited": "{{team}} invited you to join",
-    "rosterInvitation": "Roster invitation",
-    "youAppliedTo": "You applied to {{team}}",
-    "awaitingResponse": "Awaiting their response",
-    "guestInvited": "{{team}} invited you as a guest",
-    "guestInvitation": "Guest invitation",
-    "youOfferedGuest": "You offered to guest for {{team}}"
-  },
   "discover": {
     "title": "Discover",
     "subtitle": "Find teams, opponents, guests, and players near you",
@@ -496,7 +467,6 @@
     "none": "None."
   },
   "nav": {
-    "home": "Home",
     "discover": "Discover",
     "teams": "Teams",
     "availability": "Availability"
