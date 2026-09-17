@@ -10,7 +10,6 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Avatar } from "./ui";
 
 const NAV = [
-  { to: "/home", labelKey: "nav.home" },
   { to: "/discover", labelKey: "nav.discover" },
   { to: "/teams", labelKey: "nav.teams" },
   { to: "/availability", labelKey: "nav.availability" },
@@ -155,7 +154,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex h-[62px] max-w-[1100px] items-center gap-6 px-6">
-          <NavLink to="/home" className="flex flex-none items-center gap-2.5 no-underline">
+          <NavLink to="/discover" className="flex flex-none items-center gap-2.5 no-underline">
             <img src="/logo-icon.png" alt="" className="h-[30px] w-[30px] flex-none" />
             <span className="text-lg font-extrabold tracking-[-0.01em] text-ink">Kickoff</span>
           </NavLink>

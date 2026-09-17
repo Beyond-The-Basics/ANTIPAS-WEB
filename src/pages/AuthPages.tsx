@@ -11,10 +11,10 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useActingUser } from "../context/ActingUser";
 import { translateApiError } from "../lib/errors";
 
-/** Where to land after authenticating: back where you were sent from, else the app home. */
+/** Where to land after authenticating: back where you were sent from, else Discover. */
 function useRedirectTarget(): string {
   const location = useLocation() as { state?: { from?: string } };
-  return location.state?.from ?? "/home";
+  return location.state?.from ?? "/discover";
 }
 
 function AuthShell({

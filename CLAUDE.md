@@ -62,7 +62,7 @@ Vite + React 18 + TypeScript + Tailwind v3 + react-router v6.
   `Card`, `Button`, `Tabs`, …). Ported from the prototype's inline style helpers so the palette lives
   in one place. **Add new visual primitives here, not inline in pages.**
 - `src/lib/` — `format.ts` (date/expiry labels), `useMyTeams.ts` (the my-teams fan-out, see below).
-- `src/pages/` — Home, Discover, Teams, TeamDetail, MatchDetail, Availability, Profile.
+- `src/pages/` — Discover (the landing screen after sign-in), Teams, TeamDetail, MatchDetail, Availability, Profile. There is no Home page; `/home` redirects to `/discover`.
 - `tailwind.config.js` — the Kickoff palette lifted verbatim from the prototype. Use the semantic
   names (`brand`, `canvas`, `line`, `muted`, `chip`) rather than raw hex.
 
@@ -111,8 +111,7 @@ render as blanks or are omitted — **do not fill them with sample data**:
 - **No list-game-types endpoint** — publishing an opponent search asks for a `game_type_id` pasted
   from the seeded catalog.
 - **No aggregate endpoints** — there is no `GET /users/me/teams` or `/users/me/matches`, so
-  `useMyTeams` lists all teams and reads each roster to find you (N+1). Home does the same for
-  matches. Collapse both into single calls if those endpoints ever land.
+  `useMyTeams` lists all teams and reads each roster to find you (N+1). Collapse it into a single call if that endpoint ever lands.
 
 When a screen can't be built, the cause is usually a missing endpoint rather than missing UI — check
 the backend's router before assuming otherwise.

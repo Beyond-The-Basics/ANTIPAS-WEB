@@ -23,7 +23,7 @@ const STEP_COUNT = 4;
 
 function useRedirectTarget(): string {
   const location = useLocation() as { state?: { from?: string } };
-  return location.state?.from ?? "/home";
+  return location.state?.from ?? "/discover";
 }
 
 function Progress({ step }: { step: number }) {

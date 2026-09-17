@@ -105,35 +105,6 @@
     "step3Title": "Évaluez votre niveau",
     "step3Subtitle": "Auto-évaluations facultatives — aide coéquipiers et adversaires à savoir à quoi s'attendre."
   },
-  "home": {
-    "title": "Accueil",
-    "noActingSubtitle": "Choisissez qui vous représentez via la puce en haut à droite pour voir vos matchs et demandes.",
-    "nobodySelected": "Personne sélectionné.",
-    "greeting": "Ravi de vous revoir, {{name}}",
-    "upcomingMatches": "Matchs à venir",
-    "noMatches": "Aucun match confirmé pour l'instant.",
-    "requests": "Demandes ({{count}})",
-    "noRequests": "Aucune demande pour le moment.",
-    "decline": "Refuser",
-    "declined": "Refusé",
-    "accept": "Accepter",
-    "accepted": "Accepté",
-    "confirm": "Confirmer",
-    "confirmed": "Confirmé",
-    "withdraw": "Retirer",
-    "withdrawn": "Retiré",
-    "rosterWantsToJoin": "{{user}} veut rejoindre {{team}}",
-    "rosterApplication": "Candidature à l'effectif",
-    "opponentWantsToPlay": "{{team}} veut affronter {{yourTeam}}",
-    "opponentApplication": "Candidature d'adversaire",
-    "rosterInvited": "{{team}} vous a invité à rejoindre l'équipe",
-    "rosterInvitation": "Invitation à l'effectif",
-    "youAppliedTo": "Vous avez postulé chez {{team}}",
-    "awaitingResponse": "En attente de leur réponse",
-    "guestInvited": "{{team}} vous a invité en tant que remplaçant",
-    "guestInvitation": "Invitation en tant que remplaçant",
-    "youOfferedGuest": "Vous avez proposé de remplacer pour {{team}}"
-  },
   "discover": {
     "title": "Découvrir",
     "subtitle": "Trouvez des équipes, adversaires, remplacements et joueurs près de chez vous",
@@ -496,7 +467,6 @@
     "none": "Aucun."
   },
   "nav": {
-    "home": "Accueil",
     "discover": "Découvrir",
     "teams": "Équipes",
     "availability": "Disponibilité"

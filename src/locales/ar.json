@@ -105,35 +105,6 @@
     "step3Title": "قيم المستوى ديالك",
     "step3Subtitle": "تقييمات اختيارية — كتعاون الفريق والخصوم يعرفو أشنو يتوقعو."
   },
-  "home": {
-    "title": "الرئيسية",
-    "noActingSubtitle": "اختار مع من كتدخل من الشيپ لي فوق على اليمين باش تشوف الماتشات والطلبات ديالك.",
-    "nobodySelected": "ماحدش مختار.",
-    "greeting": "فرحان بيك، {{name}}",
-    "upcomingMatches": "الماتشات الجايين",
-    "noMatches": "ماكاين حتى ماتش مأكد دابا.",
-    "requests": "الطلبات ({{count}})",
-    "noRequests": "ماكاين حتى طلب دابا.",
-    "decline": "رفض",
-    "declined": "تّرفض",
-    "accept": "قبول",
-    "accepted": "تّقبل",
-    "confirm": "تأكيد",
-    "confirmed": "تّأكد",
-    "withdraw": "سحب",
-    "withdrawn": "تّسحب",
-    "rosterWantsToJoin": "{{user}} بغا ينضم لـ {{team}}",
-    "rosterApplication": "طلب انضمام",
-    "opponentWantsToPlay": "{{team}} بغا يلعب مع {{yourTeam}}",
-    "opponentApplication": "طلب مباراة",
-    "rosterInvited": "{{team}} عيطك تنضم",
-    "rosterInvitation": "دعوة انضمام",
-    "youAppliedTo": "طلبتي تنضم لـ {{team}}",
-    "awaitingResponse": "فالانتظار ديال الجواب ديالهم",
-    "guestInvited": "{{team}} عيطك كبديل",
-    "guestInvitation": "دعوة كبديل",
-    "youOfferedGuest": "عرضتي روحك كبديل ل {{team}}"
-  },
   "discover": {
     "title": "اكتشف",
     "subtitle": "لقا فرق، خصوم، بدلاء، ولاعبين قريب منك",
@@ -496,7 +467,6 @@
     "none": "والو."
   },
   "nav": {
-    "home": "الرئيسية",
     "discover": "اكتشف",
     "teams": "الفرق",
     "availability": "التوفر"
