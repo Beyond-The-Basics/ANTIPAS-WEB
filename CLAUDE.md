@@ -66,8 +66,10 @@ Vite + React 18 + TypeScript + Tailwind v3 + react-router v6.
 - `tailwind.config.js` — the Kickoff palette lifted verbatim from the prototype. Use the semantic
   names (`brand`, `canvas`, `line`, `muted`, `chip`) rather than raw hex.
 
-**Tailwind is pinned to v3.** v4's `@tailwindcss/oxide` requires Node >= 20 and this project targets
-Node 18; on 18 the native binary silently fails to install and the build breaks.
+**Node 22 (>= 20.19).** Vite 8 and `@vitejs/plugin-react` 6 refuse older Node, and `wrangler` 4 needs
+>= 20.3; CI runs 22. Keep `@vitejs/plugin-react` on a major whose peer range includes the installed
+Vite — a mismatch fails `npm ci` with ERESOLVE. **Tailwind stays on v3** for now: moving to v4 is a
+config/CSS migration, not a version bump.
 
 ## Multi-language
 
@@ -107,6 +109,11 @@ render as blanks or are omitted — **do not fill them with sample data**:
   are omitted for the same reason.
 - **"Invite against a broadcast"** — no such route; guest invites attach to a confirmed match, so
   that action lives on Match detail.
+- **Discover rows (design handoff 7b)** — the design shows team level, distance, and which term an
+  offer left negotiable ("They book" / "Time open"). None of those exist on the listing schemas, so
+  rows show sport · city and the term column shows when the listing closes. There is also no
+  per-tab counts endpoint: Discover fetches every listing type and counts client-side, and the date
+  filter applies to Matches only (roster/guest searches carry no date).
 - **Credits** — `charge_publish` is a backend stub, so "costs 1 credit" is descriptive copy only.
 - **No list-game-types endpoint** — publishing an opponent search asks for a `game_type_id` pasted
   from the seeded catalog.

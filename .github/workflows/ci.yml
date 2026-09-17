@@ -19,9 +19,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Tailwind is pinned to v3 because v4's oxide binary requires Node >= 20;
-          # keep CI on the same major the project targets.
-          node-version: "18"
+          # Vite 8 and @vitejs/plugin-react 6 need Node ^20.19 || >=22.12, and wrangler 4 >= 20.3.
+          # Keep CI on the same major the project targets.
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
