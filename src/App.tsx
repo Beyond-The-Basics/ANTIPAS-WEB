@@ -6,7 +6,6 @@ import { LoginPage, SignupPage } from "./pages/AuthPages";
 import { AvailabilityPage } from "./pages/AvailabilityPage";
 import { CreateTeamPage } from "./pages/CreateTeamPage";
 import { DiscoverPage } from "./pages/DiscoverPage";
-import { HomePage } from "./pages/HomePage";
 import { LandingPage } from "./pages/LandingPage";
 import { MatchDetailPage } from "./pages/MatchDetailPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
@@ -99,7 +98,8 @@ export default function App() {
       </Route>
 
       <Route element={<AppShell />}>
-        <Route path="/home" element={<HomePage />} />
+        {/* Home was removed; Discover is the landing screen. Keep old /home links working. */}
+        <Route path="/home" element={<Navigate to="/discover" replace />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/teams/new" element={<CreateTeamPage />} />

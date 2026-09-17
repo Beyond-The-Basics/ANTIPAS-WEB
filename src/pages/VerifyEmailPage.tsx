@@ -25,7 +25,7 @@ export function VerifyEmailPage() {
   // Signup forwards where the user was originally headed. Landing on it hands off to the app
   // shell, which still owns the onboarding gate — so a brand-new account continues into the
   // wizard rather than this page having to know that rule too.
-  const target = location.state?.from ?? "/home";
+  const target = location.state?.from ?? "/discover";
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
