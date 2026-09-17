@@ -43,11 +43,12 @@ const PHOTO = {
 const NAV_HREFS = ["#how", "#do", "#sports", "#voices"];
 
 const HERO_AVATARS = [
-  { initials: "RC", bg: "#C62828" },
+  { initials: "RC", bg: "#147A49" },
   { initials: "ML", bg: "#111111" },
   { initials: "DO", bg: "#8a8f8a" },
-  { initials: "JT", bg: "#A91E1E" },
+  { initials: "JT", bg: "#0f6a3f" },
 ];
+
 
 const FEATURE_ICONS = ["🥅", "👥", "📅", "⚡"];
 
@@ -61,9 +62,9 @@ const SPORT_PHOTOS = [
 ];
 
 const QUOTE_PEOPLE = [
-  { name: "Marcus D.", initials: "MD", bg: "#C62828" },
+  { name: "Marcus D.", initials: "MD", bg: "#147A49" },
   { name: "Priya S.", initials: "PS", bg: "#111111" },
-  { name: "Leo V.", initials: "LV", bg: "#A91E1E" },
+  { name: "Leo V.", initials: "LV", bg: "#0f6a3f" },
 ];
 
 // --- small building blocks ----------------------------------------------------

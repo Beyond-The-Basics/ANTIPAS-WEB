@@ -81,8 +81,8 @@ export default {
         pin: "0 4px 12px rgba(0,0,0,.12)",
         hero: "0 30px 60px -24px rgba(0,0,0,.32)",
         "float-card": "0 16px 34px -12px rgba(0,0,0,.28)",
-        "btn-brand": "0 6px 16px -6px #C62828",
-        "btn-brand-lg": "0 12px 26px -10px #C62828",
+        "btn-brand": "0 6px 16px -6px #147A49",
+        "btn-brand-lg": "0 12px 26px -10px #147A49",
         "card-hover": "0 18px 40px -22px rgba(0,0,0,.25)",
         "cta-white": "0 14px 30px -12px rgba(0,0,0,.45)",
       },
@@ -99,9 +99,9 @@ export default {
       backgroundImage: {
         // The diagonal stripe used on match banners and the profile cover.
         stripe:
-          "repeating-linear-gradient(135deg,#C62828,#C62828 12px,#A91E1E 12px,#A91E1E 24px)",
+        "repeating-linear-gradient(135deg,#147A49,#147A49 12px,#0f6a3f 12px,#0f6a3f 24px)",
         "stripe-lg":
-          "repeating-linear-gradient(135deg,#C62828,#C62828 16px,#A91E1E 16px,#A91E1E 32px)",
+          "repeating-linear-gradient(135deg,#147A49,#147A49 16px,#0f6a3f 16px,#0f6a3f 32px)", 
         // Faint white stripe laid over the solid-brand final CTA band.
         "cta-stripe":
           "repeating-linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.05) 18px,transparent 18px,transparent 36px)",
