@@ -10,7 +10,7 @@ multi-user flows (captain/member, invites, team-vs-team) can still be exercised 
 
 ## Prerequisites
 
-- Node 18+ and the **backend running** on `http://localhost:8000` (see the ANTIPAS-BACKEND repo:
+- Node 22 (>= 20.19) and the **backend running** on `http://localhost:8000` (see the ANTIPAS-BACKEND repo:
   `make test-instance`, or `docker compose up -d postgres && uvicorn app.main:app`). Seed reference
   data (`make seed`) so game types exist for opponent searches.
 
@@ -76,8 +76,8 @@ data the list endpoints already return in full.
 
 - Actions run as the acting user; the API enforces permissions, so a **403 toast** means that user
   lacks the required role. Role-gated controls are also hidden client-side.
-- Tailwind is pinned to **v3** — v4's `@tailwindcss/oxide` requires Node ≥ 20 and this project
-  targets Node 18. The palette lives in `tailwind.config.js`, lifted from the prototype.
+- Tailwind is on **v3** (v4 is a config/CSS migration, not a version bump). The palette lives in
+  `tailwind.config.js`, lifted from the prototype.
 - Leaflet markers use `divIcon`, so no marker image assets are bundled.
 
 ## Layout

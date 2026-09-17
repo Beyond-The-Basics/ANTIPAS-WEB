@@ -17,6 +17,12 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      // Discover 7b type system. `display` is for page-title scale only; `body` for everything
+      // else on screens built to it. Arabic swaps both to Rubik (see src/styles.css).
+      fontFamily: {
+        display: ["Sora", "system-ui", "sans-serif"],
+        body: ['"Instrument Sans"', "system-ui", "sans-serif"],
+      },
       colors: {
         canvas: withOpacity("--color-canvas"),
         surface: withOpacity("--color-surface"),
