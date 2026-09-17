@@ -166,6 +166,11 @@ export function NegotiationModal({
       .catch(() => setSearch(null));
     refreshProposals();
     void api
+      .get<OpponentSearch>(`/opponent-searches/${application.opponent_search_id}`)
+      .then(setSearch)
+      .catch(() => setSearch(null));
+    refreshProposals();
+    void api
       .get<NegotiationMessage[]>(`/opponent-applications/${appId}/messages`)
       .then(setMessages)
       .catch(() => setMessages([]));
@@ -585,6 +590,48 @@ export function NegotiationModal({
                           </Button>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* chat, collapsed by default — the mockup doesn't show it, but it's real, working
+               negotiation functionality (accept -> chat -> propose -> agree). */}
+            <div className="mt-5 border-t border-line pt-4">
+              <button
+                className="text-[12.5px] font-bold text-muted hover:text-ink"
+                onClick={() => setChatOpen((o) => !o)}
+              >
+                {chatOpen ? "Hide chat ▴" : "Chat ▾"}
+              </button>
+              {chatOpen && (
+                <div className="mt-3">
+                  <div ref={scrollRef} className="max-h-48 space-y-2 overflow-y-auto">
+                    {messages.length === 0 ? (
+                      <p className="text-[12.5px] text-faint">
+                        No messages yet — say hi and sort out the details.
+                      </p>
+                    ) : (
+                      messages.map((m) => {
+                        const mine = m.sender_user_id === acting?.id;
+                        return (
+                          <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                            <div
+                              className={`max-w-[75%] rounded-2xl px-3 py-1.5 text-[13px] ${
+                                mine ? "bg-brand text-white" : "bg-canvas text-ink"
+                              }`}
+                            >
+                              {!mine && (
+                                <div className="text-[10px] font-bold uppercase tracking-wide opacity-70">
+                                  {userName(m.sender_user_id)}
+                                </div>
+                              )}
+                              {m.body}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
