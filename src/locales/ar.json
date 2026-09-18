@@ -130,6 +130,7 @@
     "guestInvitationFrom": "دعوة كبديل من {{team}}",
     "guestOfferTo": "عرض بديل لـ {{team}}",
     "viewMatch": "شوف الماتش",
+    "viewTeam": "شوف الفريق",
     "acceptedGuest": "تّقبل — راك بديل فهاد الماتش",
     "liveListings_zero": "ماكاين حتى إعلان نشيط ف {{place}}",
     "liveListings_one": "إعلان واحد نشيط ف {{place}}",
@@ -315,7 +316,8 @@
     "acceptChallenge": "قبول التحدي",
     "challengeAccepted": "تّقبل التحدي — تفاوضو على التفاصيل",
     "noMatchesYet": "ماكاين حتى ماتش دابا — أكد فريق باش تدير واحد.",
-    "vsTeam": "ضد {{team}}"
+    "vsTeam": "ضد {{team}}",
+    "invite": { "title": "{{team}} دعاتك باش تنضم ليها.", "joined": "انضمتي لـ {{team}}" }
   },
   "matchDetail": {
     "loading": "كايتحمل الماتش…",
@@ -659,6 +661,7 @@
     "phoneTaken": "هاد الرقم مسجل من قبل.",
     "badCredentials": "الإيميل أو كلمة السر غالطة.",
     "alreadyApplied": "عندك طلب فالانتظار هنا من قبل.",
+    "applicationNotPending": "هاد الدعوة ما بقاتش متاحة.",
     "alreadyMember": "راك عضو نشيط من قبل.",
     "searchClosed": "هاد الإعلان ماشي مفتوح دابا.",
     "cannotRespondOwn": "ما يمكنش تجاوب على الإعلان ديالك.",

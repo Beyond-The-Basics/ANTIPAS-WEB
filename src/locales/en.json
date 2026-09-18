@@ -130,6 +130,7 @@
     "guestInvitationFrom": "Guest invitation from {{team}}",
     "guestOfferTo": "Guest offer to {{team}}",
     "viewMatch": "View the match",
+    "viewTeam": "View the team",
     "acceptedGuest": "Accepted — you're a guest in this match",
     "liveListings_one": "{{count}} live listing in {{place}}",
     "liveListings_other": "{{count}} live listings in {{place}}",
@@ -311,7 +312,8 @@
     "acceptChallenge": "Accept challenge",
     "challengeAccepted": "Challenge accepted — negotiate the details",
     "noMatchesYet": "No matches yet — confirm a responding team to create one.",
-    "vsTeam": "vs {{team}}"
+    "vsTeam": "vs {{team}}",
+    "invite": { "title": "{{team}} invited you to join.", "joined": "You joined {{team}}" }
   },
   "matchDetail": {
     "loading": "Loading match…",
@@ -655,6 +657,7 @@
     "phoneTaken": "That phone number is already registered.",
     "badCredentials": "Incorrect email or password.",
     "alreadyApplied": "You already have a pending application here.",
+    "applicationNotPending": "This invitation is no longer available.",
     "alreadyMember": "You're already an active member.",
     "searchClosed": "This listing isn't open anymore.",
     "cannotRespondOwn": "You can't respond to your own listing.",

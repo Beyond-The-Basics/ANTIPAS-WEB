@@ -769,6 +769,14 @@ export function DiscoverPage() {
                 <div className="mt-0.5 text-xs text-muted">
                   {teamById.get(a.team_id) ? SPORT_LABEL[teamById.get(a.team_id)!.sport] : "—"}
                 </div>
+                {/* Let the player look the team over before answering — the invite banner on the
+                    team page carries the same accept/decline actions. */}
+                <Link
+                  to={`/teams/${a.team_id}`}
+                  className="mt-0.5 block text-xs text-muted hover:text-brand"
+                >
+                  {t("discover.viewTeam")}
+                </Link>
               </div>
               <Pill value={a.status} />
               {a.status === "pending" && a.direction === "team_invited" && (
