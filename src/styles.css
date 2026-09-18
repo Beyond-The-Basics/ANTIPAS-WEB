@@ -78,10 +78,15 @@
 
 @layer base {
   body {
-    @apply bg-canvas text-ink antialiased;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    @apply bg-canvas text-ink antialiased font-body;
     text-wrap: pretty;
+  }
+
+  /* Page titles are the display face, matching Discover's h1. Scoped to h1 on purpose: Discover
+     leaves its section h2s in the body face, so promoting those too would change Discover rather
+     than bring the rest of the app in line with it. */
+  h1 {
+    @apply font-display;
   }
 
   a {
@@ -118,7 +123,11 @@
   }
 }
 
-/* Sora and Instrument Sans carry no Arabic glyphs; Rubik does, and matches their weight range. */
+/* Sora and Instrument Sans carry no Arabic glyphs; Rubik does, and matches their weight range.
+   `body`/`h1` are listed alongside the utilities because the base layer applies those two faces by
+   element, and @apply inlines the family rather than adding the class for these selectors to match. */
+:lang(ar) body,
+:lang(ar) h1,
 :lang(ar) .font-display,
 :lang(ar) .font-body {
   font-family: Rubik, system-ui, sans-serif;
