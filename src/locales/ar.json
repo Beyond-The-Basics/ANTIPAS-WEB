@@ -382,14 +382,7 @@
     "pickActingToSeeBroadcasts": "اختار مع من كتدخل باش تشوف البثوث ديالك.",
     "nonePublished": "ماكاين والو منشور.",
     "withdraw": "سحب",
-    "withdrawn": "تّسحب",
-    "findAvailablePlayers": "لقا لاعبين متوفرين",
-    "allSports": "كولشي الرياضات",
-    "anywhere": "فأي بلاصة",
-    "within": "فمحيط",
-    "kmOf": "{{km}} كم من {{city}}",
-    "noPlayersWithin": "ماكاين حتى لاعب متوفر فمحيط {{km}} كم من {{city}}.",
-    "noOpenBroadcasts": "ماكاين حتى بث مفتوح."
+    "withdrawn": "تّسحب"
   },
   "profile": {
     "title": "البروفيل",
