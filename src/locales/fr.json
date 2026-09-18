@@ -377,14 +377,7 @@
     "pickActingToSeeBroadcasts": "Choisissez qui vous représentez pour voir vos diffusions.",
     "nonePublished": "Aucune publiée.",
     "withdraw": "Retirer",
-    "withdrawn": "Retiré",
-    "findAvailablePlayers": "Trouver des joueurs disponibles",
-    "allSports": "Tous les sports",
-    "anywhere": "N'importe où",
-    "within": "Dans un rayon de",
-    "kmOf": "{{km}} km de {{city}}",
-    "noPlayersWithin": "Aucun joueur disponible dans un rayon de {{km}} km de {{city}}.",
-    "noOpenBroadcasts": "Aucune diffusion ouverte trouvée."
+    "withdrawn": "Retiré"
   },
   "profile": {
     "title": "Profil",

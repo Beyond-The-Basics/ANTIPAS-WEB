@@ -4,10 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
 
 import { api } from "../api/client";
-import { PlayerAvailabilityModal } from "../components/PlayerAvailabilityModal";
 import { SPORTS, type PlayerAvailability, type Sport } from "../api/types";
 import {
-  Avatar,
   Button,
   Card,
   Empty,
@@ -25,7 +23,6 @@ import { CITIES_BY_COUNTRY, type Country, findCity, isCountry } from "../lib/cit
 import { expiresLabel } from "../lib/format";
 import { TILE_ATTRIBUTION, TILE_URL } from "../lib/map";
 import { COUNTRIES, DEFAULT_COUNTRY } from "../lib/profile";
-import { useUsers } from "../lib/useMyTeams";
 
 /** Teardrop pin from the prototype, as a divIcon so no marker image assets are bundled. */
 const PIN = L.divIcon({
@@ -61,7 +58,6 @@ function RecenterOnCityMatch({ target }: { target: [number, number] | null }) {
 export function AvailabilityPage() {
   const { user: acting } = useActingUser();
   const { run, notify } = useToast();
-  const { users, userName } = useUsers();
   const { t } = useTranslation();
 
   // --- publish side ----------------------------------------------------------
@@ -72,15 +68,7 @@ export function AvailabilityPage() {
   const [recenterTarget, setRecenterTarget] = useState<[number, number] | null>(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
 
-  // --- search side -----------------------------------------------------------
-  const [filterSport, setFilterSport] = useState<Sport | "">("");
-  const [searchCountry, setSearchCountry] = useState<Country>(DEFAULT_COUNTRY);
-  const [searchCityName, setSearchCityName] = useState("");
-  const [searchRadiusKm, setSearchRadiusKm] = useState(15);
-
-  const [all, setAll] = useState<PlayerAvailability[]>([]);
   const [mine, setMine] = useState<PlayerAvailability[]>([]);
-  const [selected, setSelected] = useState<PlayerAvailability | null>(null);
   const pinRef = useRef<L.Marker>(null);
 
   const movePin = useCallback((lat: number, lng: number) => setPosition([lat, lng]), []);
@@ -127,32 +115,15 @@ export function AvailabilityPage() {
     );
   }, [notify, t]);
 
-  const searchCenter = useMemo(() => {
-    if (!searchCityName) return null;
-    const city = findCity(searchCountry, searchCityName);
-    return city ? ([city.lat, city.lng] as [number, number]) : null;
-  }, [searchCountry, searchCityName]);
-
   const load = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (filterSport) params.set("sport", filterSport);
-    if (searchCenter) {
-      params.set("search_lat", String(searchCenter[0]));
-      params.set("search_lng", String(searchCenter[1]));
-      params.set("search_radius_km", String(searchRadiusKm));
-    }
-    const q = params.toString() ? `?${params}` : "";
-    await run(async () => {
-      setAll(await api.get<PlayerAvailability[]>(`/player-availability${q}`));
-    });
-    if (acting) {
-      await run(async () => {
-        setMine(await api.get<PlayerAvailability[]>(`/users/me/availability`));
-      });
-    } else {
+    if (!acting) {
       setMine([]);
+      return;
     }
-  }, [filterSport, searchCenter, searchRadiusKm, acting, run]);
+    await run(async () => {
+      setMine(await api.get<PlayerAvailability[]>(`/users/me/availability`));
+    });
+  }, [acting, run]);
 
   useEffect(() => {
     void load();
@@ -175,12 +146,9 @@ export function AvailabilityPage() {
     ).then(() => load());
   };
 
-  const others = useMemo(() => all.filter((a) => a.user_id !== acting?.id), [all, acting]);
-
-  const selectedUser = useMemo(
-    () => (selected ? (users.find((u) => u.id === selected.user_id) ?? null) : null),
-    [selected, users],
-  );
+  // A withdrawn broadcast is no longer doing anything, so it drops out of the list rather than
+  // lingering as a greyed-out row. Expiry is the same story once the worker sets it.
+  const activeMine = useMemo(() => mine.filter((a) => a.status === "open"), [mine]);
 
   return (
     <>
@@ -316,11 +284,11 @@ export function AvailabilityPage() {
       <SectionLabel>{t("availability.myBroadcasts")}</SectionLabel>
       {!acting ? (
         <Empty>{t("availability.pickActingToSeeBroadcasts")}</Empty>
-      ) : mine.length === 0 ? (
+      ) : activeMine.length === 0 ? (
         <Empty>{t("availability.nonePublished")}</Empty>
       ) : (
         <div className="mb-8 flex flex-col gap-2.5">
-          {mine.map((a) => (
+          {activeMine.map((a) => (
             <Card key={a.id} className="flex items-center gap-3 px-4 py-3.5">
               <SportDot sport={a.sport} size={30} />
               <div className="min-w-0 flex-1">
@@ -350,103 +318,6 @@ export function AvailabilityPage() {
             </Card>
           ))}
         </div>
-      )}
-
-      <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
-        <SectionLabel>{t("availability.findAvailablePlayers")}</SectionLabel>
-        <div className="ms-auto flex flex-wrap items-center gap-2">
-          <select
-            className="field !py-2 !text-[12.5px] font-semibold"
-            value={filterSport}
-            onChange={(e) => setFilterSport(e.target.value as Sport | "")}
-          >
-            <option value="">{t("availability.allSports")}</option>
-            {SPORTS.map((s) => (
-              <option key={s} value={s}>
-                {SPORT_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <select
-            className="field !py-2 !text-[12.5px]"
-            value={searchCountry}
-            onChange={(e) => {
-              setSearchCountry(e.target.value as Country);
-              setSearchCityName("");
-            }}
-          >
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            className="field !py-2 !text-[12.5px]"
-            value={searchCityName}
-            onChange={(e) => setSearchCityName(e.target.value)}
-          >
-            <option value="">{t("availability.anywhere")}</option>
-            {CITIES_BY_COUNTRY[searchCountry].map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {searchCenter && (
-        <div className="mb-3.5 flex items-center gap-2.5 rounded-tile border border-line bg-canvas px-3.5 py-2">
-          <span className="text-[11px] font-semibold text-muted">{t("availability.within")}</span>
-          <input
-            type="range"
-            min={MIN_RADIUS_KM}
-            max={MAX_RADIUS_KM}
-            value={searchRadiusKm}
-            onChange={(e) => setSearchRadiusKm(Number(e.target.value))}
-            className="h-1.5 flex-1 cursor-pointer accent-brand"
-          />
-          <span className="whitespace-nowrap text-[11px] font-bold text-ink">
-            {t("availability.kmOf", { km: searchRadiusKm, city: searchCityName })}
-          </span>
-        </div>
-      )}
-
-      {others.length === 0 ? (
-        <Empty>
-          {searchCenter
-            ? t("availability.noPlayersWithin", { km: searchRadiusKm, city: searchCityName })
-            : t("availability.noOpenBroadcasts")}
-        </Empty>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {others.map((a) => (
-            <Card
-              key={a.id}
-              className="flex cursor-pointer items-center gap-3 rounded-[10px] px-4 py-3 transition hover:border-brand"
-              onClick={() => setSelected(a)}
-            >
-              <Avatar name={userName(a.user_id)} size={28} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-semibold">{userName(a.user_id)}</div>
-                <div className="mt-0.5 text-xs text-muted">
-                  {SPORT_LABEL[a.sport]} · {a.city}
-                  {a.country ? ` · ${a.country}` : ""}
-                </div>
-              </div>
-              <RadiusChip km={a.radius_km} />
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {selected && (
-        <PlayerAvailabilityModal
-          availability={selected}
-          user={selectedUser}
-          onClose={() => setSelected(null)}
-        />
       )}
     </>
   );

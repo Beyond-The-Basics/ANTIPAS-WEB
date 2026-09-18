@@ -376,14 +376,7 @@
     "pickActingToSeeBroadcasts": "Pick who you're acting as to see your broadcasts.",
     "nonePublished": "None published.",
     "withdraw": "Withdraw",
-    "withdrawn": "Withdrawn",
-    "findAvailablePlayers": "Find available players",
-    "allSports": "All sports",
-    "anywhere": "Anywhere",
-    "within": "Within",
-    "kmOf": "{{km}} km of {{city}}",
-    "noPlayersWithin": "No players available within {{km}} km of {{city}}.",
-    "noOpenBroadcasts": "No open broadcasts found."
+    "withdrawn": "Withdrawn"
   },
   "profile": {
     "title": "Profile",
