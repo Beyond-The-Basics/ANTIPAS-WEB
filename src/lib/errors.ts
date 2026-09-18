@@ -13,6 +13,8 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "Phone already registered": "errors.phoneTaken",
   "Incorrect email or password": "errors.badCredentials",
   "A pending application already exists": "errors.alreadyApplied",
+  // The other side withdrew or already answered while this tab was open.
+  "Application is not pending": "errors.applicationNotPending",
   "User is already an active member": "errors.alreadyMember",
   "Search is no longer open": "errors.searchClosed",
   "Search is not open": "errors.searchClosed",

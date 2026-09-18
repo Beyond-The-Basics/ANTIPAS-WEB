@@ -39,6 +39,9 @@ import { COUNTRIES } from "../lib/reference";
 
 type Tab = "members" | "recruiting" | "opponent" | "matches";
 
+/** What someone who is not on the team may open. Backed by endpoints that need no auth. */
+const PUBLIC_TABS: Tab[] = ["members", "matches"];
+
 export function TeamDetailPage() {
   const { teamId = "" } = useParams();
   const { user: acting } = useActingUser();
@@ -64,6 +67,7 @@ export function TeamDetailPage() {
   const [rosterApps, setRosterApps] = useState<RosterApplication[]>([]);
   const [opponentSearches, setOpponentSearches] = useState<OpponentSearch[]>([]);
   const [opponentApps, setOpponentApps] = useState<OpponentApplication[]>([]);
+  const [myRosterApps, setMyRosterApps] = useState<RosterApplication[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
@@ -82,7 +86,7 @@ export function TeamDetailPage() {
 
   const reload = useCallback(async () => {
     await run(async () => {
-      const [t, m, mt, allRoster, rApps, allOpp, oApps, us, ts, gts] = await Promise.all([
+      const [t, m, mt, allRoster, rApps, allOpp, oApps, us, ts, gts, myApps] = await Promise.all([
         api.get<Team>(`/teams/${teamId}`),
         api.get<Membership[]>(`/teams/${teamId}/members`),
         api.get<Match[]>(`/teams/${teamId}/matches`),
@@ -100,6 +104,11 @@ export function TeamDetailPage() {
         api.get<User[]>(`/users`),
         api.get<Team[]>(`/teams`),
         api.get<GameType[]>(`/game-types`),
+        // The viewer's own invites, so a player who was invited here can answer without going back
+        // to Discover. Self-scoped, but fails soft for the same reason as the two calls above.
+        api
+          .get<RosterApplication[]>(`/users/me/roster-applications`)
+          .catch(() => [] as RosterApplication[]),
       ]);
       setTeam(t);
       setName(t.name);
@@ -112,6 +121,7 @@ export function TeamDetailPage() {
       setUsers(us);
       setTeams(ts);
       setGameTypes(gts);
+      setMyRosterApps(myApps);
     });
   }, [teamId, run]);
 
@@ -125,11 +135,22 @@ export function TeamDetailPage() {
     members.find((m) => m.user_id === acting?.id)?.role ?? null;
   const isCaptain = myRole === "captain";
   const manages = isCaptain || myRole === "admin";
-  // Someone browsing a team they might join (e.g. from the recruiting map) only sees the roster
-  // and lineup — the recruiting / opponent / matches tabs are for the team's own members.
+  // Someone browsing a team they might join (e.g. from the recruiting map, or an invitation) sees
+  // the public side of it — the recruiting and opponent tabs stay for the team's own members.
   const isMember = myRole !== null;
-  const visibleTabs = isMember ? TABS : TABS.filter((t) => t.id === "members");
-  const activeTab: Tab = isMember ? tab : "members";
+  // Matches are public (`GET /teams/{id}/matches` needs no auth) and MatchesTab is read-only, so an
+  // invited player can judge how active the team is. Recruiting and opponent stay internal.
+  const visibleTabs = isMember ? TABS : TABS.filter((t) => PUBLIC_TABS.includes(t.id));
+  const activeTab: Tab = isMember || PUBLIC_TABS.includes(tab) ? tab : "members";
+
+  // A live invitation to *this* team, shown as a banner so the player can accept or decline right
+  // where they are browsing. Guarded on !isMember so a stale row never renders to someone who
+  // already joined.
+  const pendingInvite = isMember
+    ? null
+    : (myRosterApps.find(
+        (a) => a.team_id === teamId && a.direction === "team_invited" && a.status === "pending",
+      ) ?? null);
 
   const sportGameTypes = gameTypes.filter((g) => g.sport === team.sport);
   const currentGameType = gameTypes.find((g) => g.id === team.game_type_id) ?? null;
@@ -228,6 +249,46 @@ export function TeamDetailPage() {
           )}
         </div>
       </div>
+
+      {pendingInvite && (
+        <div className="mb-3.5 rounded-tile border border-brand bg-brand-tint px-3.5 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-0 flex-1 text-[13.5px] font-semibold text-brand-deep">
+              {t("teamDetail.invite.title", { team: team.name })}
+            </div>
+            <Button
+              size="row"
+              variant="ghost"
+              onClick={() =>
+                run(
+                  () => api.post(`/roster-applications/${pendingInvite.id}/decline`),
+                  t("teamDetail.declined"),
+                ).then((ok) => {
+                  // Only leave the page if the decline actually landed. On failure the toast
+                  // explains why and a reload re-reads the invite — it may have been withdrawn or
+                  // answered elsewhere while this tab sat open.
+                  if (ok) navigate("/discover");
+                  else void reload();
+                })
+              }
+            >
+              {t("teamDetail.decline")}
+            </Button>
+            <Button
+              size="row"
+              variant="accent"
+              onClick={() =>
+                act(
+                  () => api.post(`/roster-applications/${pendingInvite.id}/accept`),
+                  t("teamDetail.invite.joined", { team: team.name }),
+                )
+              }
+            >
+              {t("teamDetail.accept")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AboutTeam team={team} manages={manages} act={act} />
 

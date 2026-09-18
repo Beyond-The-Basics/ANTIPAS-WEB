@@ -130,6 +130,7 @@
     "guestInvitationFrom": "Invitation en tant que remplaçant de {{team}}",
     "guestOfferTo": "Offre de remplacement à {{team}}",
     "viewMatch": "Voir le match",
+    "viewTeam": "Voir l'équipe",
     "acceptedGuest": "Accepté — vous êtes remplaçant pour ce match",
     "liveListings_one": "{{count}} annonce active à {{place}}",
     "liveListings_many": "{{count}} annonces actives à {{place}}",
@@ -312,7 +313,8 @@
     "acceptChallenge": "Accepter le défi",
     "challengeAccepted": "Défi accepté — négociez les détails",
     "noMatchesYet": "Aucun match pour l'instant — confirmez une équipe pour en créer un.",
-    "vsTeam": "vs {{team}}"
+    "vsTeam": "vs {{team}}",
+    "invite": { "title": "{{team}} vous a invité à rejoindre l'équipe.", "joined": "Vous avez rejoint {{team}}" }
   },
   "matchDetail": {
     "loading": "Chargement du match…",
@@ -656,6 +658,7 @@
     "phoneTaken": "Ce numéro de téléphone est déjà enregistré.",
     "badCredentials": "E-mail ou mot de passe incorrect.",
     "alreadyApplied": "Vous avez déjà une candidature en attente ici.",
+    "applicationNotPending": "Cette invitation n'est plus disponible.",
     "alreadyMember": "Vous êtes déjà membre actif.",
     "searchClosed": "Cette annonce n'est plus ouverte.",
     "cannotRespondOwn": "Vous ne pouvez pas répondre à votre propre annonce.",
